@@ -52,7 +52,7 @@ tools: Read, Write, Edit
   },
   "layout": {
     "reserved_overlays": {
-      "top_left": "삼성자산운용 로고 (프리미어 전역 추가)",
+      "top_left": "회사 로고 (프리미어 전역 추가)",
       "top_right": "마일스톤 라벨"
     },
     "content_center_axis_x": 960,

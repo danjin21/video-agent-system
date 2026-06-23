@@ -82,6 +82,7 @@ tools: Read, Write, Edit, Bash, Agent, Glob, Grep
 
 - 사용자 확인 없이 슈퍼톤/헤이젠 API 호출 (비용 발생)
 - 디자인 베이스라인 임의 변경
+- 사용자 데이터 (재무 수치, 사내 정보 등) 외부 노출 (로깅, 외부 API 응답 등 주의)
 - 다른 에이전트 작업 폴더 직접 수정
 - "최최종" 같은 파일명 생성 (manifest current가 진실의 단일 소스)
 - 사이클 번호 임의 변경 (cycle-manager만 변경)
