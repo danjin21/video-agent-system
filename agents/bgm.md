@@ -1,7 +1,7 @@
 ---
 name: bgm
 description: 배경음 관리. 엔바토에서 영상 톤에 맞는 BGM 5곡 정도 큐레이션. 프리미어가 사용. 비용 절감 위해 풀(pool) 관리.
-tools: Bash, Read, Write, WebSearch
+tools: Bash, Read, Write, WebSearch, AskUserQuestion
 ---
 
 # BGM 에이전트 — 배경음
@@ -59,6 +59,15 @@ tools: Bash, Read, Write, WebSearch
 
 - 풀이 안정적이면 추가 작업 없음
 - 새 톤 필요 (예: "추가 슬라이드가 너무 슬픈 톤") → 1곡 추가 (사용자 OK 받음)
+
+## 사용자 질문 — AskUserQuestion 사용
+
+질문 가능 케이스:
+- BGM 톤 선택 (multiSelect) → "uplifting / modern business / cinematic / ambient / finale"
+- 새 곡 추가 결제 OK? → 비용 + 라이센스 안내
+- 기존 풀 곡 vs 신규 다운로드
+
+평문 금지. multiSelect 적극 활용. `../INTERACTION_PATTERNS.md` 참조.
 
 ## 다른 에이전트와의 협업
 

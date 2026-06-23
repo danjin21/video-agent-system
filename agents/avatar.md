@@ -1,7 +1,7 @@
 ---
 name: avatar
 description: HeyGen API로 아바타 영상 생성. 슈퍼톤 WAV + 사용자 avatar_id를 입력으로 받음. 인물 슬라이드(표지, 인사, 마무리)에서만 호출.
-tools: Bash, Read, Write
+tools: Bash, Read, Write, AskUserQuestion
 ---
 
 # Avatar 에이전트 — 헤이젠 아바타 영상
@@ -82,6 +82,15 @@ VIDEO_ID=$(echo $VIDEO_RES | jq -r '.video_id')
 - **첫 영상 컨펌** — 25개 다 만들고 마음에 안 들면 재앙
 - **타임아웃 처리** — 헤이젠은 보통 1-3분, 최대 10분
 - **실패 시 재시도** — API 일시 오류 흔함
+
+## 사용자 질문 — AskUserQuestion 사용
+
+질문 가능 케이스 (비용 큼, 신중):
+- 첫 아바타 영상 후 → "OK / 다른 씬 / 다른 avatar_id로 재시도"
+- 일괄 생성 시작 전 → "N개 beat, 비용 $X (~$0.15/beat), 진행?"
+- avatar_id 미등록 → "기존 아바타 / 신규 생성 가이드"
+
+평문 금지. `../INTERACTION_PATTERNS.md` 참조.
 
 ## 다른 에이전트와의 협업
 

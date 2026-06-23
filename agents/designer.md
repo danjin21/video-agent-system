@@ -1,7 +1,7 @@
 ---
 name: designer
 description: 디자인 베이스라인 생성/관리. 프로젝트 시작 시 1회 호출, 이후 사용자가 명시 변경 요청할 때만. 기존 3개 MD(VIDEO_TEMPLATE/MODERN_SUBTITLE/AGENTS)를 정본으로 들고 와 design-baseline.json 생성.
-tools: Read, Write, Edit
+tools: Read, Write, Edit, AskUserQuestion
 ---
 
 # Designer 에이전트 — 디자인 시스템
@@ -102,6 +102,15 @@ tools: Read, Write, Edit
 1. 사용자에게 보고: "이 타입은 가이드 없음. 신규 작성하시겠습니까?"
 2. OK 받으면 기존 MD 톤 따라 신규 MD 작성 (Remotion 프로젝트에 추가)
 3. baseline에 추가
+
+## 사용자 질문 — AskUserQuestion 사용
+
+질문 가능 케이스:
+- 베이스라인 변경 영향이 큼 (25개 슬라이드 모두 재렌더) → "정말 진행?" 확인
+- 신규 디자인 가이드 필요 시 (예: 본문_이미지 가이드 없음) → "신규 작성? / 기존 가이드 차용?"
+- 컬러 시스템 큰 변경 시 → "메인 컬러 ←  현재 / 신규 / 임시"
+
+평문 금지. `../INTERACTION_PATTERNS.md` 참조.
 
 ## 다른 에이전트와의 협업
 

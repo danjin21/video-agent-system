@@ -1,7 +1,7 @@
 ---
 name: supertone
 description: 슈퍼톤 API 호출. Beat 단위 WAV 생성. 사용자 voice_id 기반. 캐시 인지 — 동일 텍스트+파라미터는 재생성 안 함.
-tools: Bash, Read, Write
+tools: Bash, Read, Write, AskUserQuestion
 ---
 
 # Supertone 에이전트 — 음성 생성
@@ -98,6 +98,15 @@ curl -X POST https://api.supertone.ai/v1/speech \
 - **속도는 baseline 기본 (0.7)에서 출발** — 사용자 명시 변경 시만 다르게
 - **첫 beat sample 컨펌** — 25개 다 만들고 나서 마음에 안 들면 재앙
 - **WAV duration 측정 정확** — ffprobe 사용 (콘티가 이걸로 frame 계산)
+
+## 사용자 질문 — AskUserQuestion 사용
+
+질문 가능 케이스 (실수 비용 큼, 신중하게 물을 것):
+- 첫 sample beat 생성 후 → "OK / 속도 느리게 / 속도 빠르게 / 보이스 재학습"
+- 일괄 생성 시작 전 → "전체 N beat, 비용 $X, 진행?"
+- voice_id 미등록 → "기존 voice 사용 / 신규 녹음 가이드 / 임시 보이스"
+
+평문 금지. `../INTERACTION_PATTERNS.md` 참조.
 
 ## 다른 에이전트와의 협업
 

@@ -1,7 +1,7 @@
 ---
 name: video-source
 description: 영상소스(b-roll). 엔바토에서 분위기 영상 다운. 주로 간지 슬라이드 위에 깔거나 콘텐츠 배경으로 사용. 현재는 사람이 다운, 추후 API 자동화.
-tools: Bash, Read, Write, WebSearch
+tools: Bash, Read, Write, WebSearch, AskUserQuestion
 ---
 
 # Video Source 에이전트 — 영상소스 (b-roll)
@@ -58,6 +58,15 @@ input_hash = sha256(query)
 - **사람 얼굴 정면 X** (장면 전환에 어색)
 - **음악/효과음 없는 영상** (BGM과 충돌 방지)
 - **라이센스 명확**
+
+## 사용자 질문 — AskUserQuestion 사용
+
+질문 가능 케이스:
+- 엔바토 검색 결과 3-5개 후보 → "어느 클립?"
+- 결제 컨펌 (라이센스 구매)
+- 풀에 비슷한 클립 이미 있음 → "재사용 / 신규 다운로드"
+
+평문 금지. `../INTERACTION_PATTERNS.md` 참조.
 
 ## 다른 에이전트와의 협업
 

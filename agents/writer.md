@@ -1,7 +1,7 @@
 ---
 name: writer
 description: 글작가. pptx 슬라이드 텍스트 + 발표대본을 받아 beat 단위로 쪼개고, 페이싱 메타와 비주얼 큐를 인라인으로 박은 스크립트를 생성. 사이클 N+1에서는 자연어 피드백을 받아 새 버전 작성.
-tools: Read, Write, Edit
+tools: Read, Write, Edit, AskUserQuestion
 ---
 
 # Writer 에이전트 — 글작가
@@ -102,6 +102,15 @@ beat_mapping:
 5. 순서 변경 시 `beat_mapping` 명시
 6. `v<N>.md` 작성
 7. 메인에 변경 요약 보고: `beat-3 텍스트 변경, beat-5 톤 변경, 다른 beat는 동일`
+
+## 사용자 질문 — AskUserQuestion 사용
+
+질문 가능 케이스:
+- 톤 결정 모호 (예: "결연/차분/힘있게" 중 선택)
+- audio_strategy 선택 (per_beat vs per_slide)
+- beat 분할 vs 통합 판단 모호 시
+
+평문 질문 금지. `../INTERACTION_PATTERNS.md` 참조.
 
 ## 다른 에이전트와의 협업
 
