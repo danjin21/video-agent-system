@@ -1,0 +1,15 @@
+{
+  "name": "sam-video-tools",
+  "owner": {
+    "name": "Sam",
+    "email": "ekswlsgud@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "video-agent-system",
+      "source": "./",
+      "description": "경영전략회의 보고서를 영상으로 만드는 14개 에이전트 시스템",
+      "version": "0.1.0"
+    }
+  ]
+}

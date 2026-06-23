@@ -1,0 +1,58 @@
+slide_id: "05"
+pass: realization                # planning -> realization
+fps: 30
+total_frames: 1170               # 39초
+
+audio_segments:
+  - id: beat-1
+    file: 04-audio/beat-1.wav
+    start_frame: 0
+    end_frame: 144                 # wav 실측 4.8s
+  - id: beat-2
+    file: 04-audio/beat-2.wav
+    start_frame: 150                # +6 gap
+    end_frame: 276
+  - id: beat-3
+    file: 04-audio/beat-3.wav
+    start_frame: 282
+    end_frame: 417
+  - id: beat-4
+    file: 04-audio/beat-4.wav
+    start_frame: 423
+    end_frame: 561
+  - id: beat-5
+    file: 04-audio/beat-5.wav
+    start_frame: 567
+    end_frame: 660
+  - id: beat-6
+    file: 04-audio/beat-6.wav
+    start_frame: 666
+    end_frame: 1012
+
+visual_beats:
+  - frame: 0
+    action: 헤더 페이드인
+    duration_frames: 28
+  - frame: 150
+    action: row[PC] 등장 (slide-up)
+    duration_frames: 30
+  - frame: 282
+    action: row[인터넷] 등장
+    duration_frames: 30
+  - frame: 423
+    action: row[스마트폰] 등장
+    duration_frames: 30
+  - frame: 666
+    action: row[AI] 등장 + amber_box 펄스
+    duration_frames: 60
+  - frame: 1020
+    action: end hold 시작
+    duration_frames: 150           # 5초
+
+premiere_handoff:
+  fade_in_s: 0.5
+  fade_out_s: 0.5
+  bgm_duck_db: -8
+  notes:
+    - "이전 슬라이드(04)와 1초 여유 (b-roll 잔향)"
+    - "다음 슬라이드(06)로 하드컷"

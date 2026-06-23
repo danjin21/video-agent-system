@@ -1,0 +1,33 @@
+slide_id: "05"
+slide_type: 본문_데이터
+subtype: 표
+design_doc: VIDEO_TEMPLATE.md
+
+visual_mode: 장표_풀스크린        # 아바타 비노출
+audio_mode: 보이스오버
+background_video: none            # b-roll 없음
+
+primary_visual:
+  type: 5x5_표
+  columns: [구분, 등장, 대중화, 뉴노멀, 소요기간]
+  rows: [PC, 인터넷, 스마트폰, AI]
+  highlight:
+    - row: AI
+      style: blue_box      # 구분/대중화 셀
+    - row: AI
+      cols: [뉴노멀, 소요기간]
+      style: amber_box + pulse
+
+beat_to_visual:
+  beat-1: 표 헤더만 노출
+  beat-2: PC 행 등장 (fade + slide-up)
+  beat-3: 인터넷 행 등장
+  beat-4: 스마트폰 행 등장
+  beat-5: 표 유지, 카메라 미세 줌
+  beat-6: AI 행 등장 + 강조 박스 펄스
+
+end_hold_s: 5
+
+handoff_notes:
+  - "행 등장은 비트 시작 프레임에 시작 (audio boundary = visual beat 룰)"
+  - "AI 행의 amber 박스는 '27년에는 뉴노멀로' 발화 타이밍에 펄스 시작"

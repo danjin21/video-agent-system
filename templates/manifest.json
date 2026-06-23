@@ -1,0 +1,36 @@
+{
+  "project": "<프로젝트명>",
+  "created": "YYYY-MM-DD",
+  "current_cycle": 1,
+  "design_baseline": "v1.0",
+  "modes": {
+    "checkpoint": "표준",
+    "_options": ["빠른", "표준", "정밀"]
+  },
+  "secrets_path": "~/.config/video-agents/secrets.env",
+  "external_deps": {
+    "remotion_project": "/Users/sam/Documents/remotion",
+    "envato_account": "<email>"
+  },
+  "cycles": [
+    {
+      "n": 1,
+      "date": "YYYY-MM-DD",
+      "trigger": "최초 제작",
+      "scope": "all"
+    }
+  ],
+  "slides": {
+    "01": {
+      "type": "표지",
+      "title": "<슬라이드 제목>",
+      "current_versions": {
+        "script": null,
+        "audio_set": null,
+        "remotion_mp4": null,
+        "in_premiere": null
+      },
+      "status": "pending"
+    }
+  }
+}

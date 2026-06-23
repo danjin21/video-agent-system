@@ -1,0 +1,24 @@
+# Secrets — 절대 commit 금지
+*.env
+secrets/
+.claude-cycle-manager-cache/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# macOS
+.DS_Store
+._*
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*~
+
+# 테스트 산출물 (필요 시 별도 폴더에)
+test-output/

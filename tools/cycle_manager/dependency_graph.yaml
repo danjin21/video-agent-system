@@ -1,0 +1,142 @@
+# 사이클 매니저용 의존성 그래프 + 비용 룩업
+# 이 파일은 결정론적. 새 에이전트 추가 시만 수정.
+
+nodes:
+  # === 입력 노드 (사용자 또는 시스템 외부) ===
+  - id: user.pptx
+  - id: user.script_draft
+  - id: user.feedback
+  - id: user.voice_id              # 슈퍼톤 사용자 보이스
+  - id: user.avatar_id             # 헤이젠 사용자 아바타
+
+  # === 디자인 베이스라인 ===
+  - id: design_baseline.version
+    produces: [storyboard, layout, conti_plan, conti_real, remotion.tsx, premiere.assembly]
+
+  # === 슬라이드 단위 ===
+  - id: slide_type
+    produces: [storyboard, design_baseline.subset]
+
+  # === 스크립트 ===
+  - id: script.beat.text
+    produces: [wav, conti_plan.beat, conti_real.beat]
+  - id: script.beat.tone
+    produces: [wav]
+  - id: script.beat.cue
+    produces: [conti_plan, conti_real, remotion.tsx]
+
+  # === 리서치 ===
+  - id: research.facts
+    produces: [verifier.output]
+  - id: verifier.output
+    produces: [script.beat.text]    # 검증 결과가 스크립트 수정 트리거
+
+  # === 스토리보드 ===
+  - id: storyboard
+    produces: [layout, conti_plan, video_source.query]
+
+  # === 장표 ===
+  - id: layout
+    produces: [conti_plan, conti_real, remotion.tsx]
+
+  # === 콘티 ===
+  - id: conti_plan
+    produces: [supertone.invoke, conti_real]
+  - id: conti_real
+    produces: [remotion.tsx, premiere.handoff]
+
+  # === 음성 ===
+  - id: wav
+    produces: [wav.duration, conti_real, remotion.audio_import, avatar]
+  - id: wav.duration
+    produces: [conti_real]
+
+  # === 아바타 ===
+  - id: avatar
+    produces: [premiere.clip]
+
+  # === 영상소스/배경음 ===
+  - id: video_source.query
+    produces: [video_source.mp4]
+  - id: video_source.mp4
+    produces: [premiere.clip]
+  - id: bgm.pool
+    produces: [premiere.track]
+
+  # === 리모션 ===
+  - id: remotion.tsx
+    produces: [remotion.mp4]
+  - id: remotion.mp4
+    produces: [premiere.clip]
+
+  # === 프리미어 ===
+  - id: premiere.clip
+    produces: [premiere.assembly]
+  - id: premiere.handoff
+    produces: [premiere.assembly]
+  - id: premiere.assembly
+    produces: [final.mp4]
+  - id: final.mp4
+
+unit_costs:
+  supertone.beat:
+    usd: 0.01
+    time_s: 10
+    notes: "1 beat 평균"
+
+  heygen.beat:
+    usd: 0.15
+    time_s: 60
+    notes: "1 beat 평균"
+
+  remotion.slide_render:
+    usd: 0
+    time_s: 300
+    notes: "슬라이드 1개 평균 5분"
+
+  envato.video_download:
+    usd: 0.50
+    time_s: 30
+    notes: "1 clip 다운로드"
+
+  premiere.assembly_full:
+    usd: 0
+    time_s: 1800
+    notes: "전체 재조립 (사람 개입)"
+
+  premiere.clip_swap:
+    usd: 0
+    time_s: 120
+    notes: "클립 1개 교체 (사람 개입)"
+
+# 슬라이드 타입별 default 파이프라인
+slide_type_pipelines:
+  인물:
+    requires: [writer, supertone, avatar, premiere]
+    skips: [storyboarder, layouter, continuity, remotion, video_source]
+    notes: "아바타 풀스크린, 장표 없음"
+
+  간지:
+    requires: [writer, designer, storyboarder, supertone, remotion, premiere]
+    optional: [video_source]    # b-roll 깔 때
+    skips: [layouter, avatar]
+    notes: "짧은 챕터 전환"
+
+  키워드_타이틀:
+    requires: [writer, designer, storyboarder, layouter, continuity, supertone, remotion, premiere]
+    skips: [avatar, video_source]
+
+  본문_데이터:
+    requires: [writer, researcher, verifier, designer, storyboarder, layouter, continuity, supertone, remotion, premiere]
+    skips: [avatar, video_source]
+
+  본문_이미지:
+    requires: [writer, designer, storyboarder, layouter, continuity, supertone, remotion, premiere]
+    optional: [researcher, verifier]
+    skips: [avatar, video_source]
+    notes: "디자인 가이드 별도"
+
+  회고_파노라마:
+    requires: [writer, designer, storyboarder, layouter, continuity, supertone, remotion, premiere]
+    skips: [avatar, video_source]
+    notes: "LookingBackKeywords.tsx 패턴, 60-90s"
