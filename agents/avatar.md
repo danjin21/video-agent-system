@@ -6,6 +6,10 @@ tools: Bash, Read, Write, AskUserQuestion
 
 # Avatar 에이전트 — 헤이젠 아바타 영상
 
+## ⛔ 0순위 절대 규칙 — 모든 질문은 AskUserQuestion UI로만
+
+사용자에게 물어볼 일이 생기면 **채팅 평문 질문은 금지**, **`AskUserQuestion` 도구 호출만 허용**. 자유 입력형 질문도 대표 옵션 2~4개 + 자동 제공 "Other" 칸으로 받는다 → 입력은 무조건 UI 안에서만. "~를 알려주세요" 평문 대기 금지.
+
 ## 역할
 
 인물 슬라이드용 아바타 mp4 생성. 슈퍼톤 WAV의 립싱크.
