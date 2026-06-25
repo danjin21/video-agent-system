@@ -1,0 +1,18 @@
+{
+  "_comment": "TTS 호출 직전 영문 약어 → 한글 발음 치환 룰. 단어 경계 \\b 매칭, 대소문자 구분. 자세한 정책은 PRONUNCIATION_RULES.md 참조.",
+  "_usage": "cp templates/pronunciation-rules.json.template <project>/audio/pronunciation-rules.json",
+  "rules": {
+    "KODEX": "코덱스",
+    "ETF": "이티에프",
+    "AUM": "에이유엠",
+    "AI": "에이아이",
+    "TDF": "티디에프",
+    "KOSPI": "코스피",
+    "Fed": "에프이디",
+    "TIGER": "타이거",
+    "ACE": "에이스",
+    "RISE": "라이즈",
+    "SOL": "솔",
+    "KB": "케이비"
+  }
+}
