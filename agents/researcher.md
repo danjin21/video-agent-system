@@ -29,6 +29,7 @@ tools: WebSearch, WebFetch, Read, Write
 ```
 
 - viz 종류: `bar`(데이터라벨), `line`(음영 구간), `kpi_table`(하이라이트 행), `stat_callout`(증감 박스), `flow`(단계 다이어그램), `podium`. layouter 카탈로그와 1:1.
+- **각 dataset에 `takeaway`(강조점 한 줄)를 반드시 넣는다** — writer의 그래프 워크스루 대본이 이걸 가리키며 설명한다(예: `"takeaway": "2023년부터 기울기 급등 — 기준선 이동"`). 어느 요소(구간/막대/행)를 강조할지 `highlight` 힌트도.
 - 수치는 반드시 **출처·시점** 동봉(verifier가 사실/추정/전망 분류). 추정·미확정은 명시.
 - **사용자 승인 게이트**: 메인이 "이 슬라이드에 조사해서 넣자"고 사용자 OK를 받은 슬라이드에 한해 수집한다(임의 보강 금지).
 - **조사로 채운 데이터는 전부 `status: "researched_unverified"` + `verify_flag: true`** 로 표시 → layouter가 빨간 `(*) 검증 or 대체 필요`로 렌더. 회사 내부 실적 등 공시로 확정 못 하는 값은 특히 플래그 필수. 사용자가 직접 준 실데이터만 플래그 없이.
