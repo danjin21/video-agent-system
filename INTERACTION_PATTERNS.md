@@ -53,9 +53,9 @@
       {"label": "OK, 나머지 진행 (Recommended)",
        "description": "이대로 25개 beat 일괄 생성. ~$0.25"},
       {"label": "속도 조정 (느리게)",
-       "description": "speed 0.7 → 0.6, 다시 sample 생성"},
+       "description": "speed 1.05 → 0.95, 다시 sample 생성"},
       {"label": "속도 조정 (빠르게)",
-       "description": "speed 0.7 → 0.8, 다시 sample 생성"},
+       "description": "speed 1.05 → 1.15, 다시 sample 생성"},
       {"label": "보이스 재학습 필요",
        "description": "톤이 본인과 다름 → 슈퍼톤 재녹음 가이드 제공"}
     ]

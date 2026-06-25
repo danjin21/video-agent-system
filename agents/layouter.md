@@ -95,6 +95,30 @@ tools: Read, Write
 }
 ```
 
+## 데이터 시각화 컴포넌트 카탈로그 (2026-06 학습 — 장표는 데이터로 채운다)
+
+방향만 있는 슬라이드를 빈 placeholder로 두지 말 것. researcher의 `datasets`(viz/series/callouts/sources)를 받아 아래 컴포넌트로 실데이터 장표를 만든다. 색은 baseline(블루 #1167e8 / 네이비 #172b49 / 레드·코랄 강조 / 회색 #66758b), 배경 화이트 정본.
+
+- `bar` — 막대 차트 + **데이터 라벨 필수**(각 막대 위 수치), 시리즈 2개면 묶은 막대(예: 매출 회색 / 세전이익 블루).
+- `line` — 라인 차트, **구간 음영**(예: "구조적 성장 구간") + 범례, x축 연도.
+- `kpi_table` — 표(부문/핵심KPI/목표/현재), **하이라이트 행**(블루 배경 + 흰 텍스트)으로 핵심 행 강조.
+- `stat_callout` — 큰 수치 박스(라벨 + 값 + 증감 델타, 델타는 +면 코랄/레드, "역대 최고" 태그).
+- `flow` — 단계 다이어그램(예: 공공→민간→리테일), 아이콘 서클 + 화살표.
+- `podium` / `card_row` — 카드 3개(블루 헤더바 + 아이콘 서클 + 번호 워터마크).
+- 공통: 상단 좌측 로고 영역·영문 캡스 kicker·출처 footer(`source_footer`) 유지. 데이터 미확정 셀만 dashed placeholder, **나머지는 실데이터로**.
+
+### ⚠️ 조사 데이터 빨간 검증 플래그 (2026-06 사용자 확정 규칙)
+
+researcher가 웹서치로 채운 **미확정 데이터**(`status: researched_unverified` 또는 dataset에 `verify_flag: true`)는 **확정 사실처럼 박지 말 것.** 해당 차트/표/수치 곁에 **빨간색(`#ff6b6b`/레드) 텍스트 `(*) 검증 or 대체 필요`** 를 배치한다(작은 캡션, element `type: "verify_flag"`). 사용자가 나중에 실수치로 검증·교체할 수 있게 하는 표식이다.
+
+```json
+{ "id": "v1", "type": "verify_flag", "target": "chart_revenue",
+  "text": "(*) 검증 or 대체 필요", "pos": [<차트 우상단 근처>], "color": "#ff6b6b", "font_size_px": 24, "font_weight": 700 }
+```
+
+- 사용자가 **실데이터를 직접 준 경우**엔 플래그 없이 그대로 렌더.
+- remotion도 이 `verify_flag`를 빨간 텍스트로 그대로 노출(영상에서도 보이게).
+
 ## 작업 절차
 
 1. storyboard.yaml + baseline 읽음

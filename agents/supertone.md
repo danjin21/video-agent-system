@@ -24,7 +24,7 @@ API에서 클론 보이스를 쓰려면 별도로 `POST /v1/custom-voices/cloned
 - `<slide_dir>/01-script/v<N>.md` (각 beat의 text + 톤 메타)
 - 사용자 API용 voice_id (`~/.config/video-agents/secrets.env`의 `SUPERTONE_VOICE_ID`)
 - 디폴트 파라미터:
-  - `voice_settings.speed`: 0.95 (Supertone API 공식 파라미터)
+  - `voice_settings.speed`: **1.05** (Supertone API 공식 파라미터). 0.95 이하는 격식체 발표에서 "너무 느리다"는 피드백이 반복됨(2026-06 CFO 전사경영전략 프로젝트). 차분하면서도 답답하지 않은 기본값으로 1.05 확정. 더 느리게/빠르게는 사용자 요청 시 0.95 / 1.15 부근에서 조정.
 
 ## 사용자 onboarding (최초 1회) — 자동화
 
@@ -117,14 +117,14 @@ curl -X POST "https://supertoneapi.com/v1/text-to-speech/$SUPERTONE_VOICE_ID" \
     \"model\": \"sona_speech_2\",
     \"language\": \"ko\",
     \"output_format\": \"wav\",
-    \"voice_settings\": {\"speed\": 0.95}
+    \"voice_settings\": {\"speed\": 1.05}
   }" \
   -o "$OUTPUT_PATH"
 ```
 
 **중요 — 사양 정정 (2026-06 검증)**:
 - 모델은 `sona_speech_2`를 쓴다 (클론 voice 호환).
-- `voice_settings.speed`는 실재 파라미터.
+- `voice_settings.speed`는 실재 파라미터. **디폴트 1.05** (격식체 발표 기준 — 0.95 이하는 느리다는 피드백 반복).
 - ❌ **`speed_per_word=0.7`, `pause_after_sentence=0.5`는 Supertone API에 존재하지 않는다.** 이전 문서의 잘못된 표기. 메타데이터로만 의미가 있다.
 - 문장 사이 무음 삽입이 필요하면 **클라이언트단 후처리**(ffmpeg `-f lavfi -i anullsrc` 등으로 silence WAV 생성 후 concat)로 구현. TODO — 후처리 헬퍼 미구현, 후속 사이클에서 추가.
 
