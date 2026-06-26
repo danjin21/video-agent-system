@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 0.11.0 (2026-06-26)
+
+**신규 에이전트 `design-critic` — 취향·미감 자문(학습형).**
+
+- **design-critic 추가**: slide-qa(객관 결함 게이트)와 분리된 취향 비평가. 안착 프레임을 시니어 디자이너 시선으로 비평 → 군더더기 라벨·referent 어긋남(역전≠교차점)·밋밋한 배너·작게 흘린 결정타 등 "취향 냄새"를 순위 제안(차단 아닌 자문). 사용자 채택/기각이 `design/taste-rubric.json`에 학습되어 사용자 취향에 수렴.
+- **취향 루브릭 시드** `templates/taste-rubric.json` — 이번 세션 피드백서 도출한 10개 안티패턴(clutter_label, marker_off_referent, text_dump, small_punchline, flat_banner, slide_logo, chart_misalign, heavy_or_sentence, idle_or_over, off_brand).
+- **main [5-F]**: slide-qa(객관 게이트) + design-critic(취향 자문) 2단 검수로 확장. 렌더 전 프리뷰에서 먼저 돌려 싸게 거름.
+- 에이전트 수 15→16.
+
 ## 0.10.1 (2026-06-26)
 
 **미적 검수 — 군더더기 라벨 금지 · 주석/마커 referent 정확.**

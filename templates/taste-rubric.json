@@ -1,0 +1,16 @@
+{
+  "_note": "design-critic 취향 루브릭 시드. 프로젝트는 design/taste-rubric.json으로 복사·학습. 사용자 교정마다 항목 추가/가중치 조정.",
+  "version": "seed-2026-06-26",
+  "anti_patterns": [
+    {"id": "clutter_label", "severity": "high", "smell": "화면을 설명하는 회색 중간 안내문/메타 라벨", "example": "'오늘 함께 볼 곡선, 셋'", "fix": "제거 — 요소 등장 자체로 말한다"},
+    {"id": "marker_off_referent", "severity": "high", "smell": "주석·마커가 가리키는 대상과 어긋남", "example": "'역전' 점이 곡선 교차점이 아님 / 태그 overhang", "fix": "referent 좌표에 정확히(교차점·해당 막대)"},
+    {"id": "text_dump", "severity": "high", "smell": "한 화면에 여러 문장 한 번에 덤프", "fix": "비트별 점진 노출"},
+    {"id": "small_punchline", "severity": "mid", "smell": "결정타 키워드를 작은 캡션으로 흘림", "example": "'AX'를 배너로", "fix": "콘텐츠 비우고 화면 가득 대형 reveal + 글자 스태거"},
+    {"id": "flat_banner", "severity": "mid", "smell": "하단 배너가 단순 페이드라 밋밋", "fix": "pop(0.92→1.06→1.0) + 흰 shine 스윕 1회"},
+    {"id": "slide_logo", "severity": "mid", "smell": "좌상단에 로고/텍스트 워드마크를 슬라이드에 박음", "fix": "top_left 비우고 Premiere 전역 오버레이"},
+    {"id": "chart_misalign", "severity": "high", "smell": "막대 바닥선/데이터 라벨 어긋남", "fix": "공통 베이스라인 + 막대 기준 라벨 정렬"},
+    {"id": "heavy_or_sentence", "severity": "high", "smell": "weight 800-900 / 장표 문장형(~다)·중타이틀", "fix": "디스플레이 600(임팩트 700), 체언 종결만"},
+    {"id": "idle_or_over", "severity": "high", "smell": "idle 둥둥·ambient 루프 / 1.5초 초과 모션", "fix": "≤1.5초 완결+정지, idle 금지"},
+    {"id": "off_brand", "severity": "high", "smell": "다크 배경·골드 등 비-HP 잔재", "fix": "화이트/블루 2면, 주체 #024ad8 / 강조 코랄 #ff5050"}
+  ]
+}
