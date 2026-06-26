@@ -112,7 +112,10 @@ tools: Read, Write, Edit, AskUserQuestion
   "timing": {
     "fps": 30,
     "audio_gap_frames": 6,
+    "inter_slide_hold_frames": 45,
+    "_inter_slide_hold_note": "중간 악장/슬라이드의 끝 대기(trailing hold) = ~1.5초(45f). 마지막 콘텐츠/오디오 종료 후 길게 비우지 말 것 — 죽은 시간.",
     "end_hold_frames": 150,
+    "_end_hold_note": "150f(5초) end-hold는 **영상 전체의 마지막 슬라이드에만**. 중간 슬라이드는 inter_slide_hold_frames(45f) 사용.",
     "default_duration_s": 8
   },
   "motion": {

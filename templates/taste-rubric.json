@@ -11,6 +11,8 @@
     {"id": "chart_misalign", "severity": "high", "smell": "막대 바닥선/데이터 라벨 어긋남", "fix": "공통 베이스라인 + 막대 기준 라벨 정렬"},
     {"id": "heavy_or_sentence", "severity": "high", "smell": "weight 800-900 / 장표 문장형(~다)·중타이틀", "fix": "디스플레이 600(임팩트 700), 체언 종결만"},
     {"id": "idle_or_over", "severity": "high", "smell": "idle 둥둥·ambient 루프 / 1.5초 초과 모션", "fix": "≤1.5초 완결+정지, idle 금지"},
-    {"id": "off_brand", "severity": "high", "smell": "다크 배경·골드 등 비-HP 잔재", "fix": "화이트/블루 2면, 주체 #024ad8 / 강조 코랄 #ff5050"}
+    {"id": "off_brand", "severity": "high", "smell": "다크 배경·골드 등 비-HP 잔재", "fix": "화이트/블루 2면, 주체 #024ad8 / 강조 코랄 #ff5050"},
+    {"id": "long_dead_hold", "severity": "mid", "smell": "중간 악장 끝에 마지막 콘텐츠/오디오 후 대기가 길다(3~5초 죽은 시간)", "fix": "중간 슬라이드 끝 대기 ~1.5초(45f). 5초 end-hold는 최종 슬라이드만"},
+    {"id": "slow_term", "severity": "mid", "smell": "비트 사이 텀이 늘어져 지루함", "fix": "발화 비트 간 불필요한 공백 제거, 모션은 ≤1.5초 후 다음 비트로"}
   ]
 }

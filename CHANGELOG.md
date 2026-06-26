@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 0.11.1 (2026-06-26)
+
+**중간 악장 끝 대기 단축(1.5초) + b-roll 배경 적용 패턴.**
+
+- **끝 대기(trailing hold)**: 중간 악장/슬라이드는 마지막 콘텐츠·오디오 후 **~1.5초(45f)** 만. **5초(150f) end-hold는 영상 전체 마지막 슬라이드에만.** designer baseline(`inter_slide_hold_frames:45`)·continuity·remotion·DESIGN. design-critic 루브릭에 `long_dead_hold`·`slow_term` 추가.
+- **b-roll 배경 패턴**(video-source/storyboarder): 표지·엔딩·간지/전환·키워드·감성 모먼트에만, **데이터 슬라이드 금지**. 치료 = 블루 스크림(온브랜드). storyboarder가 `background_video` 큐로 지정.
+
 ## 0.11.0 (2026-06-26)
 
 **신규 에이전트 `design-critic` — 취향·미감 자문(학습형).**
