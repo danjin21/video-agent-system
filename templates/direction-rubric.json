@@ -1,0 +1,17 @@
+{
+  "_note": "director(연출) 루브릭 시드. 프로젝트는 design/direction-rubric.json으로 복사·학습. 사용자 교정마다 갱신.",
+  "version": "seed-2026-06-26",
+  "principles": [
+    {"id": "restraint_first", "rule": "가장 단순한 장치(깨끗한 면)가 디폴트. 장치는 스스로를 정당화할 때만."},
+    {"id": "broll_default_off", "rule": "b-roll은 기본 미사용. 간지·표지·키워드·배경에 자동으로 깔지 말 것(사용자 피드백 2026-06)."},
+    {"id": "broll_if_used", "rule": "정말 필요할 때만(메타포가 영상으로 살아야 하는 케이스). 쓸 땐 동적 선호, 블루 스크림/오버레이 강제 금지, 비유 1:1."},
+    {"id": "one_director_feel", "rule": "영상 전체가 한 명의 PD가 컷한 느낌 — 톤·페이싱 일관."},
+    {"id": "match_energy_to_emotion", "rule": "비트 에너지를 스크립트 감정 곡선에 맞춤(따뜻→긴장→자부심→결연→뭉클)."},
+    {"id": "no_gratuitous_decoration", "rule": "장식·중간 안내 라벨·과한 모션 금지. '빼면 더 나빠지나?' 통과해야 둠."}
+  ],
+  "device_priority": ["clean_blue", "clean_white", "chart", "big_keyword", "avatar", "b_roll"],
+  "learned_from_session": [
+    "간지에 b-roll = 별로 → 클린 블루 면이 더 강함",
+    "b-roll 쓸 거면 정적<동적, 파란 스크림 빼기"
+  ]
+}

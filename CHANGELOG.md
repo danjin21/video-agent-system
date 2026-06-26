@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 0.13.0 (2026-06-26)
+
+**신규 에이전트 `director`(연출/PD) — 절제 우선 연출 의도 + 레퍼런스 주도.**
+
+- **director 추가**: 영상 전체의 연출 의도 설계(비트별 장치+왜, 호흡·에너지 곡선, 톤 일관). **절제 우선** — b-roll·장식은 내러티브가 요구할 때만(간지 자동 금지). 사용자가 좋아하는 **레퍼런스 연출/영상을 주면 분석(reference_style)해 그 문법으로 플랜·소스 매칭**. design-critic(사후 미감)과 달리 사전 창작 판단, storyboarder 위에서 의도 제공.
+- **direction-rubric 시드** `templates/direction-rubric.json` — restraint_first, broll_default_off, broll_if_used(동적·스크림 강제 금지), one_director_feel 등.
+- **main [6-0] 연출** 단계 추가(storyboarder 앞). 에이전트 수 16→17.
+
 ## 0.12.1 (2026-06-26)
 
 **b-roll 기본 미사용 — 간지/배경에 자동으로 깔지 않음.**

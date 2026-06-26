@@ -151,6 +151,14 @@ tools: Read, Write, Edit, Bash, Agent, Glob, Grep, AskUserQuestion
 
 > 1)~5)가 어느 정도 확정되면, 6-1)·6-2)로 넘어갈지 질문 UI로 확인한 뒤 진행한다.
 
+## [6-0] 연출 — `director` 에이전트
+
+스토리보드 전에 **`director`로 영상 전체의 연출 의도**를 잡는다. 비트마다 어떤 장치(깨끗한 면/아바타/차트/대형 키워드/b-roll)를 *왜* 쓰는지, 호흡·에너지 곡선, 톤 일관성. **절제 우선** — b-roll·과한 장식은 내러티브가 요구할 때만(간지에 자동 금지).
+
+1. director가 `03-storyboard/direction.yaml`(연출 플랜) 작성 → **AskUserQuestion으로 핵심 선택지 승인**.
+2. 사용자가 **좋아하는 레퍼런스 연출/영상**을 주면 director가 분석(`reference_style.yaml`)해 그 문법대로 플랜·소스 매칭.
+3. 이 연출 플랜이 storyboarder(매핑)·video-source(b-roll은 director 콜 시만)·continuity(호흡)의 상위 의도가 된다. 사용자 교정은 `direction-rubric.json`에 학습.
+
 ## [6-1] 스토리보드 — `storyboarder` 에이전트
 
 1. **pptx 기반**으로, 각 부분을 **영상으로 노출할지 / 인물로 노출할지 / 장표로 노출할지** 결정한다.

@@ -1,6 +1,6 @@
 {
   "name": "sam-video-tools",
-  "description": "한국어 발표 영상 자동화 — 16개 협업 에이전트로 PPT/스크립트 → 영상 변환(장표 검수 + 디자인 비평 포함). Remotion + SuperTone + HeyGen + Premiere 통합.",
+  "description": "한국어 발표 영상 자동화 — 17개 협업 에이전트로 PPT/스크립트 → 영상 변환(연출 + 장표 검수 + 디자인 비평 포함). Remotion + SuperTone + HeyGen + Premiere 통합.",
   "owner": {
     "name": "Sam",
     "email": "ekswlsgud@gmail.com"
@@ -9,8 +9,8 @@
     {
       "name": "video-agent-system",
       "source": "./",
-      "description": "경영전략회의 보고서를 영상으로 만드는 16개 에이전트 시스템(장표 검수 + 디자인 비평)",
-      "version": "0.12.1"
+      "description": "경영전략회의 보고서를 영상으로 만드는 17개 에이전트 시스템(연출 + 장표 검수 + 디자인 비평)",
+      "version": "0.13.0"
     }
   ]
 }
