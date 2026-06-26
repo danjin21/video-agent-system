@@ -74,7 +74,8 @@ Avatar V (`avatar_v`)는 더 자연스러운 모션을 제공하지만 비용이
 ```bash
 LOOK=$(curl -s -X GET "https://api.heygen.com/v3/avatars/looks/$AVATAR_ID" \
   -H "X-API-KEY: $HEYGEN_API_KEY")
-SUPPORTED=$(echo "$LOOK" | jq -r '.supported_api_engines[]?')
+# ⚠️ 경로 주의: supported_api_engines는 .data 아래에 있다 (2026-06 버그 수정)
+SUPPORTED=$(echo "$LOOK" | jq -r '.data.supported_api_engines[]?')
 if ! echo "$SUPPORTED" | grep -q '^avatar_v$'; then
   # AskUserQuestion: "이 avatar_id는 Avatar V 미지원. avatar_iv로 fallback / 다른 avatar_id / 취소"
   ENGINE="avatar_iv"

@@ -10,7 +10,7 @@
       "name": "video-agent-system",
       "source": "./",
       "description": "경영전략회의 보고서를 영상으로 만드는 15개 에이전트 시스템(장표 검수 포함)",
-      "version": "0.8.0"
+      "version": "0.9.0"
     }
   ]
 }

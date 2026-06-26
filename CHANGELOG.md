@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 0.9.0 (2026-06-26)
+
+**비트 단위 점진 노출 + 음성→리모션 재타이밍 루프 + avatar_v 버그 수정.**
+
+- **핵심 원칙(continuity/remotion/storyboarder/writer/main)**: "한 화면에 여러 문장 덤프 금지". 한 슬라이드 안에서도 대사 한 비트마다 요소가 하나씩 등장/하이라이트. 3개면 3 오브젝트 순차, 표는 발화 행마다 하이라이트 이동, 간지어엔 간지 떴다 사라짐. 순차 등장 요소는 writer가 beat로 쪼갬.
+- **음성→리모션 재타이밍 루프**: 비트 싱크는 실제 SuperTone WAV 실측 후에야 정확 → 장표→음성→continuity realization→Remotion 재렌더. 음성/대사 변경 시 그 슬라이드는 루프 재진입.
+- **avatar.md 버그 수정**: Avatar V 사전체크가 `.supported_api_engines`(잘못)→`.data.supported_api_engines`. 이 버그로 V 지원 아바타가 IV로 잘못 폴백했음.
+
 ## 0.8.0 (2026-06-26)
 
 **기획 깊이 상향 — 비유의 시각화·데이터 성실성·b-roll 매칭·비트 모션 (6개 에이전트).**

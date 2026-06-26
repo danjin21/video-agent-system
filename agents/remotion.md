@@ -94,6 +94,8 @@ const Slide05NewNormalTable: React.FC = () => {
 - **layout.json 좌표 그대로** — 추가 판단 X
 - **conti.yaml frame 그대로** — 자체 타이밍 X
 - **모든 애니메이션 ≤1.5초(45프레임@30fps) 내 완결 후 정지** — `interpolate` 입력 구간이 conti frame 기준 45프레임을 넘지 않게. 완결 후 값 고정(클램프), **idle 루프·둥둥 모션 금지**. 대기 구간엔 추가 interpolate 없음.
+- **비트별 점진 노출 — 한 화면에 한 번에 덤프 금지 (2026-06 핵심).** 모든 요소의 등장/하이라이트는 conti가 준 **해당 beat 시작 프레임**에 건다. 처음부터 다 보이게 하지 말 것. 예) 곡선은 축+회색 먼저, 파란 곡선은 그 beat에; 3카드는 각 beat에 하나씩; 표 행 하이라이트는 발화 beat마다 이동. `interpolate(frame,[beatStart, beatStart+안], ...)` 형태로 beat에 정확히 물린다.
+- **conti는 음성(WAV) 실측 후 realization** 된 타이밍이다 — 추측 프레임 금지. 음성이 (재)생성되면 그 frame으로 **재렌더**.
 - **슬라이드 내 전환은 컷 전제** — 크로스페이드 슬라이드 전환 코드 넣지 말 것(슬라이드 간 전환은 프리미어 컷).
 - **PretendardLocal font-face 블록 포함** — weight 400/600/700 로드 (디스플레이 600, 임팩트 700)
 - **상단 코너 비워둠** — 프리미어 오버레이용
