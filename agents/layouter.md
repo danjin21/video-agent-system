@@ -23,7 +23,7 @@ tools: Read, Write
 ```json
 {
   "canvas": [1920, 1080],
-  "background": "radial-gradient(... ) + linear-gradient(...)",
+  "background": "#ffffff (또는 #024ad8 풀블리드 — HP 플랫, gradient 금지)",
   "elements": [
     {
       "id": "title",
@@ -32,17 +32,17 @@ tools: Read, Write
       "pos": [960, 60],
       "anchor": "center_top",
       "font_size_px": 82,
-      "font_weight": 900,
-      "color": "#172b49"
+      "font_weight": 500,
+      "color": "#1a1a1a"
     },
     {
       "id": "kicker",
       "type": "text",
       "text": "NEW NORMAL TIMELINE",
       "pos": [960, 30],
-      "font_size_px": 27,
-      "font_weight": 800,
-      "color": "#1167e8"
+      "font_size_px": 24,
+      "font_weight": 500,
+      "color": "#024ad8"
     },
     {
       "id": "table",
@@ -63,7 +63,7 @@ tools: Read, Write
         ["AI", "2016 (AlphaGo)", "2022 (ChatGPT)", "2027 (예상)", "5년 (예상)"]
       ],
       "row_height": 100,
-      "header_color": "#eef5ff",
+      "header_color": "#f7f7f7",
       "cell_padding_px": [12, 24]
     },
     {
@@ -73,8 +73,8 @@ tools: Read, Write
       "cells": {
         "구분": "blue_box",
         "대중화": "blue_box",
-        "뉴노멀": "amber_box + pulse",
-        "소요기간": "amber_box + pulse"
+        "뉴노멀": "coral_box + pulse",
+        "소요기간": "coral_box + pulse"
       }
     },
     {
@@ -84,8 +84,8 @@ tools: Read, Write
       "pos": [960, 1020],
       "anchor": "center_bottom",
       "font_size_px": 24,
-      "font_weight": 500,
-      "color": "#66758b"
+      "font_weight": 400,
+      "color": "#636363"
     }
   ],
   "reserved_overlays": {
@@ -95,9 +95,17 @@ tools: Read, Write
 }
 ```
 
+## 레이아웃 원칙 (영상)
+
+- **중앙축(x=960) 구성**: 상단 타이틀(+kicker) → 중앙 메인 콘텐츠 → 하단 블루 배너(상황별). 콘텐츠 기본 가운데 정렬.
+- **하단 블루 배너 zone**: 위 장표 코멘트/결과 한 줄. `#024ad8` 풀블리드 띠, 흰 텍스트 weight 600, 화면 하단 폭 전체. 필요할 때만 배치(페이드인은 콘티가 처리).
+- **양옆 구도는 좌표상 둘 다 두되, 등장은 순차**(동시 표시 금지) — 콘티의 안무(가운데→좌측 이동 + 우측 페이드인)를 전제로 좌/우 최종 좌표를 잡는다.
+- **문장형 텍스트·중타이틀·내레이션 자막 좌표를 만들지 말 것** — 화면 텍스트는 타이틀/키워드/숫자/라벨/체언 종결만 (baseline `copy_rules`).
+- 카드/사진 radius 16px, 버튼·배너 모서리 4px, 셰브론 0px.
+
 ## 데이터 시각화 컴포넌트 카탈로그 (2026-06 학습 — 장표는 데이터로 채운다)
 
-방향만 있는 슬라이드를 빈 placeholder로 두지 말 것. researcher의 `datasets`(viz/series/callouts/sources)를 받아 아래 컴포넌트로 실데이터 장표를 만든다. 색은 baseline(블루 #1167e8 / 네이비 #172b49 / 레드·코랄 강조 / 회색 #66758b), 배경 화이트 정본.
+방향만 있는 슬라이드를 빈 placeholder로 두지 말 것. researcher의 `datasets`(viz/series/callouts/sources)를 받아 아래 컴포넌트로 실데이터 장표를 만든다. 색은 baseline(HP 정본 — 주체 블루 #024ad8 / ink #1a1a1a / 코랄 #ff5050 강조 / 회색 #636363), 배경 화이트 정본. 카드 radius 16px, 버튼 4px.
 
 - `bar` — 막대 차트 + **데이터 라벨 필수**(각 막대 위 수치), 시리즈 2개면 묶은 막대(예: 매출 회색 / 세전이익 블루).
 - `line` — 라인 차트, **구간 음영**(예: "구조적 성장 구간") + 범례, x축 연도.

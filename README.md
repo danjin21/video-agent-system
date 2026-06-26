@@ -75,4 +75,4 @@ claude --plugin-dir /Users/sam/agent/video-agent-system \
 - **버전 명시적**: `최최최종.wav` 같은 파일명 금지. `v1, v2, ...` + manifest가 current 지정.
 - **에이전트 격리**: 다른 에이전트 작업물 수정 금지. 자기 폴더만 건드림.
 - **사용자 체크포인트 5곳**: 스크립트 → 스토리보드 → 음성 샘플 → 리모션 렌더 → 프리미어 직전.
-- **디자인 베이스라인 단일 소스**: `design-baseline.json` + 기존 3개 MD(`VIDEO_TEMPLATE.md`, `MODERN_SUBTITLE_DESIGN.md`, `AGENTS.md`)
+- **디자인 베이스라인 단일 소스**: `design-baseline.json` + 정본 `DESIGN.md`(HP 디자인 언어, 영상 오버라이드 포함)

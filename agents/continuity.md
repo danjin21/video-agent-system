@@ -104,11 +104,15 @@ Realization 후 시각 타이밍이 어색하면:
 
 ## 좋은 콘티의 조건
 
-- **audio boundary = visual beat** — 룰 엄격 준수
+- **audio boundary = visual beat** — 룰 엄격 준수. 요소 등장은 **내레이션 비트 동기**(내레이터가 그 내용을 말하는 프레임에 등장).
+- **모든 애니메이션 완결 ≤ 1.5초** — baseline `motion.max_anim_duration_s`. `duration_s`는 1.5를 넘지 않는다. 그 뒤 남는 시간은 전부 정지 hold (5초 beat = 1.5s anim + 3.5s hold). 대기시간을 늘려도 애니메이션을 늘리지 말 것.
+- **idle 정지** — 자리잡은 요소는 멈춘다. 둥둥 떠다님·미세 흔들림·ambient 루프 비주얼 액션 금지.
+- **슬라이드 전환 = 컷** — 슬라이드 간 디졸브/와이프 없음. premiere_handoff의 transition도 cut 기본.
+- **양옆 구도 = 순차 안무** — 좌/우 동시 표시 금지. ① 메인을 가운데 등장+애니메이션(≤1.5s) beat → ② 다음 beat에서 가운데 요소 좌측 슬라이드 이동(≤1.5s) + 우측 요소 페이드인+애니메이션(≤1.5s). baseline `motion.two_sided_choreography` 참조.
 - **end hold 5초** — baseline에 박힘. 잊지 말 것
 - **0.2초 갭** — baseline 기본값
-- **속도감 있게** — "동작은 제 속도, 남는 시간은 hold" (VIDEO_TEMPLATE.md 명시)
-- **카메라 움직임 활용** — 회고_파노라마 타입은 카메라 panning 필수
+- **속도감 있게** — "동작은 제 속도(≤1.5s), 남는 시간은 hold" (baseline `motion.rule`)
+- **카메라 움직임 활용** — 회고_파노라마 타입은 카메라 panning 필수 (단 idle 루프 아님, 1.5초 내 완결)
 
 ## 다른 에이전트와의 협업
 

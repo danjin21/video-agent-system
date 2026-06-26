@@ -93,7 +93,9 @@ const Slide05NewNormalTable: React.FC = () => {
 
 - **layout.json 좌표 그대로** — 추가 판단 X
 - **conti.yaml frame 그대로** — 자체 타이밍 X
-- **PretendardLocal font-face 블록 포함** — VIDEO_TEMPLATE.md 룰
+- **모든 애니메이션 ≤1.5초(45프레임@30fps) 내 완결 후 정지** — `interpolate` 입력 구간이 conti frame 기준 45프레임을 넘지 않게. 완결 후 값 고정(클램프), **idle 루프·둥둥 모션 금지**. 대기 구간엔 추가 interpolate 없음.
+- **슬라이드 내 전환은 컷 전제** — 크로스페이드 슬라이드 전환 코드 넣지 말 것(슬라이드 간 전환은 프리미어 컷).
+- **PretendardLocal font-face 블록 포함** — weight 400/600/700 로드 (디스플레이 600, 임팩트 700)
 - **상단 코너 비워둠** — 프리미어 오버레이용
 - **End hold 5초 유지** — baseline 룰
 - **Typecheck 통과**
@@ -110,4 +112,6 @@ const Slide05NewNormalTable: React.FC = () => {
 - 다른 슬라이드 폴더 수정
 - src/Root.tsx 등 공유 파일 수정 (필요 시 메인에 보고)
 - conti의 frame 임의 변경
+- **1.5초 초과 애니메이션 / idle 루프·둥둥 모션 / 슬라이드 디졸브** (baseline `motion`)
+- **문장형 텍스트·내레이션 자막 렌더** (baseline `copy_rules`)
 - 렌더 실패를 무시하고 보고 안 함
