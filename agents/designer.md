@@ -105,7 +105,7 @@ tools: Read, Write, Edit, AskUserQuestion
       "text_color": "#ffffff",
       "weight": 600,
       "full_width": true,
-      "entrance": "fade_in (내레이션 비트 동기)",
+      "entrance": "pop(0.92→1.06→1.0) + 흰 shine 스윕 1회 (단순 fade 금지), 내레이션 비트 동기",
       "optional": true
     }
   },
