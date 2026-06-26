@@ -55,13 +55,20 @@ input_hash = sha256(query)
 - 예) "발밑을 살핀다" → **"mountaineer looking down cliff edge, careful footing"**.
 - 비유의 핵심 동작/대상을 영어 쿼리 2~3개로 분해해 검색. storyboarder가 준 비유를 그대로 베끼지 말고 시각 동작으로 번역.
 
-## 작업 절차 (엔바토 favorite → 사용자 업로드 → 폴더 정리)
+## 소스 = Envato Elements (app.envato.com) — 정정 (2026-06)
 
-1. 스토리보드 b-roll 큐의 **비유**를 영어 쿼리로 번역 (위 원칙).
-2. 엔바토 검색 → 비유에 맞는 **후보 3~5개를 favorite(즐겨찾기)에 담는다**.
-3. **AskUserQuestion**으로 사용자에게: "favorite에 담아둔 후보 중 골라 **다운로드해서 업로드**해 주세요" (후보 목록 옵션 제시). — 현재 엔바토 자동 다운로드는 미지원, 사용자가 받아 올림.
-4. 업로드 받은 파일을 `<slide_dir>/07-broll/`에 **정리**하고 manifest 작성(출처·쿼리·비유 매핑 기록).
-5. 캐시: 같은 쿼리는 풀에서 재사용.
+레퍼런스는 **Envato Elements**(`app.envato.com` / 공개 사이트 `elements.envato.com`, 구독형 무제한 다운로드)에서 찾는다. **videohive.net(Envato Market, 건당 구매)는 사용자 워크플로가 아님** — Market API(`api.envato.com`)로 검색하지 말 것.
+- **Elements는 공개 검색 API가 없다** → 항목을 자동으로 긁지 못함. 대신 **비유 매칭 검색어 + Elements 검색 URL**을 만들어 사용자에게 제시한다:
+  `https://elements.envato.com/stock-video?terms=<검색어+공백은+로>` (예: `.../stock-video?terms=abstract+data+network+blue`)
+- 사용자가 그 페이지에서 보고 favorite(컬렉션)에 담고 다운로드 → 채팅 업로드.
+
+## 작업 절차 (Elements 검색어 제시 → 사용자 다운/업로드 → 폴더 정리)
+
+1. 스토리보드 b-roll 큐의 **비유**를 영어 검색어로 번역 (위 원칙).
+2. **Envato Elements 검색 URL 3~5개를 제시**(`elements.envato.com/stock-video?terms=...`). 비유에 1:1 매칭.
+3. **AskUserQuestion**으로 사용자에게: "이 검색 결과에서 골라 **다운로드해서 업로드**해 주세요". — 자동 다운로드 미지원, 사용자가 받아 올림.
+4. 업로드 받은 파일을 `<slide_dir>/07-broll/`에 **정리**하고 manifest 작성(출처·검색어·비유 매핑).
+5. 캐시: 같은 검색어는 풀에서 재사용.
 
 ## b-roll 배경 적용 패턴 — 어디에 쓰나 (2026-06)
 

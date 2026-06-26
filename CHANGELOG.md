@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 0.11.2 (2026-06-26)
+
+**b-roll 소스 정정 — Envato Elements(app.envato.com).**
+
+- **video-source**: 레퍼런스 소스를 **Envato Elements**(`app.envato.com`/`elements.envato.com`, 구독형)로 고정. videohive(Envato Market, 건당 구매) 및 Market API(`api.envato.com`) 사용 금지. Elements는 공개 검색 API 없음 → `elements.envato.com/stock-video?terms=...` **검색 URL을 제시**하고 사용자가 favorite/다운로드/업로드.
+
 ## 0.11.1 (2026-06-26)
 
 **중간 악장 끝 대기 단축(1.5초) + b-roll 배경 적용 패턴.**
