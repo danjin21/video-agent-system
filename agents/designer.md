@@ -98,7 +98,7 @@ tools: Read, Write, Edit, AskUserQuestion
     "section_gap_px": 80,
     "surface_rhythm": ["canvas #ffffff", "cloud #f7f7f7", "primary #024ad8 풀블리드(클로징/간지, 흰 텍스트)"],
     "surface_modes": ["white", "blue_fullbleed"],
-    "composition": "중앙축(x=960) 정렬. 상단 타이틀(+kicker) → 중앙 메인 콘텐츠 → 하단 블루 배너(상황별).",
+    "composition": "중앙축(x=960) 정렬. 상단 타이틀(+kicker) → 중앙 메인 콘텐츠 → 하단 블루 배너(상황별). 차트/그래프/표는 x축+y축(수직) 둘 다 중앙 — 헤더~배너 사이 콘텐츠 존(대략 y 230~950, 배너 시 위로 좁힘)의 수직 가운데. 타이틀 침범·배너 겹침 금지.",
     "bottom_banner": {
       "role": "바로 위 장표에 대한 코멘트/결과를 한 줄로. 헤드라인·체언 종결만 (문장형 '~다/~습니다' 금지).",
       "background": "#024ad8",
