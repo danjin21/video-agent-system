@@ -57,10 +57,20 @@ beats:
   - beat: "11악장 '벽을 넘어야'"
     device: b_roll
     why: "메타포가 영상으로 살아야 하는 드문 케이스."
-    broll_brief: {query: "person climbing over wall", tone: "동적, 스크림 최소"}
+    broll_slot: {id: "s11", description: "벽을 넘는 사람", status: placeholder, query: "person climbing over wall"}
 restraint_log:
   - "간지·키워드 배경 b-roll 전부 제외(기본 클린)."
 ```
+
+## 🎞️ b-roll = 플레이스홀더 카드 → 나중 교체 (2026-06 사용자 워크플로)
+
+b-roll이 필요한 비트라도 **처음부터 실제 영상을 박지 않는다.** 대신:
+1. director가 그 비트에 **플레이스홀더 슬롯**을 만든다: `{id, description, query, status: placeholder}`. description은 사람이 읽는 묘사(예: **"낮의 여의도 건물 영상"**, **"시계가 똑딱이는 영상"**).
+2. remotion은 그 슬롯을 **흰 화면 + 가운데 텍스트 `[영상] <description>`** 로 렌더 — **짧게 fade in → 잠깐 hold → fade out**(장면을 "살짝 넣었다 빼는" 느낌). 영상 없이도 전체 영상이 끝까지 완성된다.
+3. 나중에 **맞는 영상을 업로드하거나 video-source가 Pexels로 채우면**, 그 슬롯 `status: filled` + `file` 기록 → remotion이 같은 자리를 **OffthreadVideo로 교체** 재렌더.
+4. 슬롯 목록은 `<project>/07-broll/broll_slots.json`에 관리(어디에 무슨 영상이 들어갈지 한눈에). 사용자에게 "이 슬롯들 영상 채울까요?(업로드/Pexels/그대로 플레이스홀더)"를 AskUserQuestion으로.
+
+> 즉 b-roll은 **"여기에 이런 영상" 자리표시 → 나중에 실물로 스왑**. director가 슬롯과 묘사를 정하고, remotion이 플레이스홀더/실물을 렌더하고, video-source가 채운다.
 
 ## 작업 절차
 

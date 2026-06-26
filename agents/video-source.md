@@ -89,6 +89,7 @@ input_hash = sha256(query)
 **b-roll은 기본적으로 쓰지 않는다.** 간지·표지·키워드·슬라이드 배경에 b-roll을 기계적으로 깔지 말 것 — 기본은 깨끗한 파란/화이트 면이 더 낫다(사용자 명시). 데이터 슬라이드엔 당연히 금지.
 - **쓸지 말지·어디에·왜는 연출(director) 판단**이다. video-source는 **연출이 명시적으로 b-roll을 요청한 비트에만** 호출되는 도구. 스스로 "간지니까 깔자" 식으로 자동 적용하지 말 것.
 - 요청을 받으면 비유에 1:1 매칭(위 원칙)으로 footage를 찾되, 톤은 연출 지시를 따른다(스크림 유무·정적/동적 등도 연출이 정함 — 블루 스크림을 디폴트로 강제하지 말 것).
+- **director의 b-roll 슬롯을 채우는 역할** (`07-broll/broll_slots.json`): `status: placeholder` 슬롯의 `description`/`query`로 Pexels 검색하거나 사용자 업로드를 받아, 그 슬롯을 `status: filled` + `file`로 갱신 → remotion이 플레이스홀더 카드를 실물로 스왑한다. 슬롯을 임의로 만들지 말 것(슬롯은 director가 만든다).
 
 ## 좋은 b-roll의 조건
 

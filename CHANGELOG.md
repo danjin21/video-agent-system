@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 0.13.1 (2026-06-26)
+
+**b-roll = 플레이스홀더 카드 → 나중 교체 워크플로.**
+
+- **director/remotion/video-source**: b-roll 비트는 처음엔 **흰 화면 + 가운데 `[영상] <묘사>`** 플레이스홀더(fade in→hold→out, "살짝 넣었다 빼기")로 렌더 → 영상 없이도 전체 완성. 나중에 업로드/Pexels로 채우면 `broll_slots.json` `status: filled` → 같은 자리 OffthreadVideo로 스왑 재렌더. 슬롯·묘사("낮의 여의도 건물 영상", "시계 똑딱이는 영상")는 director가 정함, video-source가 채움.
+
 ## 0.13.0 (2026-06-26)
 
 **신규 에이전트 `director`(연출/PD) — 절제 우선 연출 의도 + 레퍼런스 주도.**
