@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 0.6.3 (2026-06-26)
+
+**회사 로고 — 에이전트가 직접 업로드 요청.**
+
+- **main [1].5 신규**: 좌상단 상시 노출 로고를 **AskUserQuestion으로 요청**(`로고 업로드 / 텍스트 워드마크 / 나중에`). 로고는 임의 생성 금지(브랜드 자산), 받기 전 top_left 비움, 받으면 `global_assets/` + baseline `premiere_overlays.logo`에 기록. 평문 "로고 주세요" 금지.
+
 ## 0.6.2 (2026-06-26)
 
 **단계 전환 확인 질문도 AskUserQuestion UI 강제.**
