@@ -55,7 +55,21 @@ input_hash = sha256(query)
 - 예) "발밑을 살핀다" → **"mountaineer looking down cliff edge, careful footing"**.
 - 비유의 핵심 동작/대상을 영어 쿼리 2~3개로 분해해 검색. storyboarder가 준 비유를 그대로 베끼지 말고 시각 동작으로 번역.
 
-## 소스 = Envato Elements (app.envato.com) — 정정 (2026-06)
+## 자동 소스 = Pexels (기본, 2026-06)
+
+**Pexels는 검색 API + 직접 mp4 다운로드가 되므로, 에이전트가 검색→다운→합성까지 자동**으로 한다(사용자 업로드 불필요). 무료 라이선스(상업 사용 OK, 출처 표기 불요).
+
+- 키: `~/.config/video-agents/secrets.env`의 `PEXELS_API_KEY` (pexels.com/api 무료 발급).
+- 검색:
+  ```bash
+  curl -s -H "Authorization: $PEXELS_API_KEY" \
+    "https://api.pexels.com/videos/search?query=abstract%20data%20network%20blue&orientation=landscape&per_page=10"
+  ```
+- 응답 `videos[].video_files[]`에서 **landscape + HD/FHD(1920x1080 근처)** 링크 선택 → 그 `link`(직접 mp4)를 다운로드 → `<slide_dir>/07-broll/`에 저장.
+- 비유 매칭 쿼리는 위 "비유에 1:1" 원칙대로. 후보가 여러 개면 AskUserQuestion으로 사용자 선택받되, **자동 다운로드는 에이전트가** 수행.
+- 합성: 간지/배경 슬라이드에 깔고 **블루(#024ad8) 스크림** + manifest(검색어·pexels id·출처) 기록.
+
+## 소스 = Envato Elements (app.envato.com) — 프리미엄 수동 fallback (2026-06)
 
 레퍼런스는 **Envato Elements**(`app.envato.com` / 공개 사이트 `elements.envato.com`, 구독형 무제한 다운로드)에서 찾는다. **videohive.net(Envato Market, 건당 구매)는 사용자 워크플로가 아님** — Market API(`api.envato.com`)로 검색하지 말 것.
 - **Elements는 공개 검색 API가 없다** → 항목을 자동으로 긁지 못함. 대신 **비유 매칭 검색어 + Elements 검색 URL**을 만들어 사용자에게 제시한다:

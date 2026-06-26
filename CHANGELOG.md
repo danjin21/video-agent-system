@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 0.12.0 (2026-06-26)
+
+**b-roll 자동 소스 — Pexels(검색 API + 직접 다운로드).**
+
+- **video-source**: Pexels를 **기본 자동 소스**로 추가 — 검색→다운→합성까지 에이전트 자동(사용자 업로드 불필요). 무료 상업 라이선스. `PEXELS_API_KEY` 사용, `api.pexels.com/videos/search`. Envato Elements는 프리미엄 수동 fallback으로 유지.
+- secrets 템플릿에 `PEXELS_API_KEY` 추가.
+
 ## 0.11.2 (2026-06-26)
 
 **b-roll 소스 정정 — Envato Elements(app.envato.com).**
