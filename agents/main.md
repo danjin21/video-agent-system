@@ -138,6 +138,14 @@ tools: Read, Write, Edit, Bash, Agent, Glob, Grep, AskUserQuestion
 
 > 즉 자료수집이 스크립트보다 **늦게** 트리거된 경우(데이터 게이트가 [5]에서 열린 경우)에도, 반드시 **자료 → 스크립트 재작성 → 재전달**의 순서를 사용자에게 안내하고 지킨다. 조사 데이터를 스크립트에 반영하지 않은 채 넘어가지 말 것.
 
+### [5-F] 장표 검수 — `slide-qa` 에이전트
+
+장표(layouter 프리뷰 또는 remotion 렌더)가 나오면 **`slide-qa`로 스크린샷을 떠 정렬·겹침·잘림·HP 규칙 위반을 점검**한다.
+
+1. slide-qa 호출 → 정지(end-hold) 프레임 스크린샷 추출 → 픽셀 판독 → `07-qa/qa_report.yaml`.
+2. **high severity 결함이 있으면** `fix_for`에 따라 layouter(좌표/정렬) 또는 remotion(구현)에 **구체 지시로 재작업** → 같은 프레임 **재검수**. high 0건이어야 통과.
+3. 좌표만 보고 통과시키지 말 것 — slide-qa는 *실제 픽셀*을 본다. 비싼 remotion 렌더 전에 layouter 프리뷰 단계에서 1차 검수하면 재렌더 비용 절감.
+
 > 1)~5)가 어느 정도 확정되면, 6-1)·6-2)로 넘어갈지 질문 UI로 확인한 뒤 진행한다.
 
 ## [6-1] 스토리보드 — `storyboarder` 에이전트
@@ -185,11 +193,13 @@ tools: Read, Write, Edit, Bash, Agent, Glob, Grep, AskUserQuestion
 | 타입 | 필수 에이전트 |
 |---|---|
 | 인물 | writer, supertone, avatar, premiere |
-| 간지 | writer, designer, storyboarder, supertone, remotion, premiere (+ optional video-source) |
-| 키워드_타이틀 | writer, designer, storyboarder, layouter, continuity, supertone, remotion, premiere |
-| 본문_데이터 | + researcher, verifier |
+| 간지 | writer, designer, storyboarder, layouter, slide-qa, supertone, remotion, slide-qa, premiere (+ optional video-source) |
+| 키워드_타이틀 | writer, designer, storyboarder, layouter, slide-qa, continuity, supertone, remotion, slide-qa, premiere |
+| 본문_데이터 | + researcher, verifier, slide-qa |
 | 본문_이미지 | (본문_데이터와 동일, researcher/verifier optional) |
 | 회고_파노라마 | (키워드_타이틀과 동일) |
+
+> **slide-qa는 두 번** — ① layouter 프리뷰 직후(저렴한 1차), ② remotion 렌더 직후(최종). high severity 결함 0건이어야 다음 단계로.
 
 ## 사용자와의 톤
 

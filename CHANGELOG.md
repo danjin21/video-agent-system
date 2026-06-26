@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 0.7.0 (2026-06-26)
+
+**신규 에이전트 `slide-qa` — 장표 검수(스크린샷 기반).**
+
+- **slide-qa 추가**: 렌더/프리뷰된 장표를 **스크린샷으로 추출(ffmpeg end-hold 프레임)해 픽셀을 직접 판독** → 정렬·겹침(덮침)·잘림·안전영역·HP 규칙(색/weight/radius/배너/문장형 금지) 위반 점검. 결함은 `qa_report.yaml`에 `type·element·fix_for(layouter/remotion)·fix`로 구조화, high severity 0건이어야 통과. "좌표 믿지 말고 픽셀 봐라."
+- **main**: [5-F] 장표 검수 단계 + 파이프라인 등록(slide-qa 2회 — layouter 프리뷰 직후 + remotion 렌더 직후). plugin/marketplace 에이전트 수 14→15.
+
 ## 0.6.5 (2026-06-26)
 
 **차트 정렬 규율 — 막대 바닥선·라벨·주석 태그 정렬.**
