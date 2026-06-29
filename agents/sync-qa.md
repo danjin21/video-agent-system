@@ -26,9 +26,18 @@ slide-qa가 *공간(위치·정렬·잘림)* 게이트라면, sync-qa는 *시간
 ```bash
 python3 scripts/sync_qa.py <project>/04-audio/beats --triggers <triggers.json> --fps 30 --tol 0.2 --out <project>/04-audio/sync_qa
 ```
-- 입력 `triggers.json`: 슬라이드별 트리거 맵 — `{ "akjang-14": [ {"el":"AX 노드 채움","frame":314,"beat":"b3"}, ... ] }` (conti의 element↔frame 매핑에서 생성).
-- 출력 `report.json`: 각 트리거의 `beat_start`, 비트 내부 `onset_frames`, `nearest_onset`, `delta_s`, `verdict`.
-- verdict: `ok: 비트 시작 정렬` / `ok: 발화 onset 정렬(+Xs)` / `FLAG: 추정 — onset과 ±Xs 어긋남, frame=N로 또는 비트 분할`.
+- 입력 `triggers.json`: 트리거 맵 + 비트 텍스트
+  ```json
+  { "texts": { "akjang-14": { "b3": "다른 하나는 가장 새로운 근육, AX입니다. 사람과 AI가 ..." } },
+    "akjang-14": [ {"el":"AX 노드 채움", "frame":349, "beat":"b3", "word":"AX"} ] }
+  ```
+- **단어 단위 매핑 (핵심)**: `word`를 주면, 비트 텍스트를 문장부호로 *프로소디 구절*로 쪼개 검출 onset에 **순서대로 매핑** → 그 단어가 든 구절의 onset 프레임을 정답으로 본다. (단어 라벨 없는 onset만으론 "어느 게 AX인가"를 못 잡던 한계 해결.) `texts`가 없으면 `<dir>/<slide>-<beat>.txt` 사이드카를 읽음 → **supertone가 beat 텍스트를 사이드카로 저장해야 함**(supertone.md).
+- `word` 없으면 비트 시작 경계로 검사.
+- 출력 `report.json`: `phrases`, `onset_frames`, `target`, `target_frame`, `delta_s`, `verdict`.
+- 실제 사례: AX 노드를 314(비트 시작 "다른 하나는…")에 넣으면 → `FLAG: "AX"=구절2/4 → onset 349 인데 트리거 314 (-1.17s)`. 349로 교정하면 `ok`.
+
+## 정밀도 한계 / 업그레이드
+구절↔onset 매핑은 *쉼표·마침표가 실제 발화 쉼과 일치할 때* 정확하다(TTS는 대개 일치). 쉼 없이 이어지는 문장은 구절 수 > onset 수가 되어 마지막 구절들이 한 onset에 몰릴 수 있다 → 그 단어에 정확히 맞추려면 **비트 분할**(그 구절을 자기 beat로) 또는 사용자 승인 후 **Whisper 등 ASR 단어 타임스탬프**로 정밀화.
 
 ## 작업 절차
 1. conti realization(프레임 확정) 후, 슬라이드별 트리거 맵을 만든다(요소 등장/채움/강조 프레임).
