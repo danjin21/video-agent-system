@@ -176,6 +176,8 @@ tools: Read, Write, Edit, Bash, Agent, Glob, Grep, AskUserQuestion
 
 6-2) 콘티까지 끝나면, 그 다음 단계 — **7) remotion, 8) heygen 아바타, 9) 슈퍼톤** — 은 **현재 에이전트에서 막아두었다**고 안내한다. 임의로 호출하지 말 것. (10) 프리미어 통합도 동일.)
 
+> **최종 합본 = Remotion 마스터 컴포지터 (기본).** 아바타 + 장표 + b-roll + 음성 + BGM을 Remotion `MasterDeck` 컴포지션에 한 타임라인으로 올려 최종 mp4 한 방 렌더(컷 전환, BGM 덕킹). 끝까지 자동·재현 100%. **Premiere는 사람 손 폴리시용 선택지**(EDL/XML 핸드오프) — 기본 파이프라인은 Premiere 없이 완결.
+
 ---
 
 # 사이클 N+1 (수정 세션)

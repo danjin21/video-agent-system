@@ -96,6 +96,7 @@ const Slide05NewNormalTable: React.FC = () => {
 - **모든 애니메이션 ≤1.5초(45프레임@30fps) 내 완결 후 정지** — `interpolate` 입력 구간이 conti frame 기준 45프레임을 넘지 않게. 완결 후 값 고정(클램프), **idle 루프·둥둥 모션 금지**. 대기 구간엔 추가 interpolate 없음.
 - **비트별 점진 노출 — 한 화면에 한 번에 덤프 금지 (2026-06 핵심).** 모든 요소의 등장/하이라이트는 conti가 준 **해당 beat 시작 프레임**에 건다. 처음부터 다 보이게 하지 말 것. 예) 곡선은 축+회색 먼저, 파란 곡선은 그 beat에; 3카드는 각 beat에 하나씩; 표 행 하이라이트는 발화 beat마다 이동. `interpolate(frame,[beatStart, beatStart+안], ...)` 형태로 beat에 정확히 물린다.
 - **conti는 음성(WAV) 실측 후 realization** 된 타이밍이다 — 추측 프레임 금지. 음성이 (재)생성되면 그 frame으로 **재렌더**.
+- **최종 합본 = `MasterDeck` 컴포지션** — 아바타·장표·b-roll 세그먼트 mp4를 한 타임라인에 `<Sequence>`로 순서 배치(컷 전환), BGM은 `<Audio volume loop>` 덕킹. 최종 mp4 한 방 렌더(`MasterDeck`). 세그먼트 1개만 바뀌면 그 세그먼트만 재렌더 후 마스터 재합성.
 - **b-roll 슬롯 = 플레이스홀더 ↔ 실물 교체** (`07-broll/broll_slots.json` 참조): 슬롯 `status: placeholder`면 **흰 화면 + 가운데 `[영상] <description>` 텍스트**를 fade in(≤10f) → hold → fade out("살짝 넣었다 빼는" 연출)으로 렌더. `status: filled`면 같은 자리를 `<OffthreadVideo src={staticFile(file)} />`로 교체(연출 지시한 스크림/톤 적용). 슬롯 채워지면 해당 슬라이드만 재렌더로 스왑.
 - **슬라이드 내 전환은 컷 전제** — 크로스페이드 슬라이드 전환 코드 넣지 말 것(슬라이드 간 전환은 프리미어 컷).
 - **PretendardLocal font-face 블록 포함** — weight 400/600/700 로드 (디스플레이 600, 임팩트 700)

@@ -6,9 +6,15 @@ tools: Bash, Read, Write
 
 # Premiere 에이전트 — 프리미어프로
 
-## 역할
+## ⭐ 최종 합본 기본 = Remotion 마스터 컴포지터 (2026-06)
 
-모든 슬라이드 영상/오디오 자산을 콘티대로 프리미어 타임라인에 배치. **자동화 한계**로 EDL/XML 생성까지만, 사람이 프리미어로 import + 최종 미세 조정.
+**최종 합체(아바타 + 장표 + b-roll + 음성 + BGM)는 기본적으로 Remotion `MasterDeck` 컴포지션으로 한다** — 모든 세그먼트 mp4를 한 타임라인에 `<Sequence>`로 올리고(컷 전환), BGM은 `<Audio volume duck>`로 깔아 **최종 mp4 한 방으로 렌더**. 끝까지 에이전트가 자동·재현 100%. (remotion 에이전트 담당, `codex-workspace/.../MasterDeck.tsx`.)
+
+**Premiere는 "사람 손 최종 폴리시"용 선택지** — Remotion 최종본을 더 정밀하게 다듬고 싶을 때만 아래 EDL/XML 핸드오프로 import해서 수작업. 기본 파이프라인은 Premiere 없이 Remotion 마스터로 완결된다.
+
+## 역할 (Premiere 핸드오프 — 선택)
+
+(사용자가 Premiere 폴리시를 원할 때) 모든 자산을 콘티대로 EDL/XML로 내보내 사람이 import + 미세 조정. 자동화 한계로 EDL/XML 생성까지만.
 
 ## 입력
 
