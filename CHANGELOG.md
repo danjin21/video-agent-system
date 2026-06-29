@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 0.15.0 (2026-06-29)
+
+**역동성(정적 슬라이드 방지) + 슈퍼톤 끝음 QA.**
+
+- **모션 2종 분리 (정적 슬라이드 근본 해결)**: 기존 "≤1.5초 후 hold"를 **리빌 모션**(등장 — 여전히 ≤1.5초 후 hold)과 **의미화 모션**(숫자 카운트업·원/막대 성장·게이지·곡선 draw — *발화 비트 길이에 맞춰 전개*, 수치 발화 순간 정착)으로 분리. 긴 내레이션(>8초) 위 정적 슬라이드 금지. `continuity`/`remotion`/`layouter`/`director`/`design-critic`/`DESIGN.md`/`taste-rubric.json`에 박음.
+- **Remotion 공용 컴포넌트 `Dynamics.tsx`**: `CountUp`(카운트업+pop), `GrowCircle`(면적∝값 성장 원+중앙 카운트업), `TiltField`("기울어진 운동장" 메타포 — 바닥이 기울고 공이 낮은 쪽으로 굴러내림). CFO 영상 악장 6(432조→501조 + 운동장)·7(40%/13조달러 카운트업)·16(OCIO 플로우 분산 등장)에 첫 적용.
+- **메타포 비주얼 = director 비트별 판정(혼합)**: 결정타·감정 고조는 b-roll(플레이스홀더 슬롯), 보조·개념은 아이콘/일러스트 모션, 약하면 절제.
+- **슈퍼톤 끝음 QA — `scripts/voice_qa.py` (무설치)**: ffmpeg + Python 표준 라이브러리(자기상관 F0 + RMS)로 문장 끝 `rising`(끝음 올라감)·`limp`(맥아리 없음) 자동 감지 + **문장별 곡선 SVG**(곡률 육안 확인). F0 옥타브 오류 보정, `limp`은 화자 코퍼스 상대 판정. 임계값 템플릿 `templates/voice-qa-rubric.json`.
+- **supertone 끝음 QA 루프**: 생성 후 voice_qa → flag된 beat 자동 재생성(시도1 문장부호 보정, 시도2 speed/무음 후처리, 최대 2회) → 실패 시 곡선 SVG와 함께 AskUserQuestion으로 escalate. QA 미통과 음성은 다음 단계로 못 넘김.
+
+
 ## 0.14.0 (2026-06-26)
 
 **최종 합본 = Remotion 마스터 컴포지터(기본). Premiere는 선택 폴리시.**

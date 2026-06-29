@@ -62,8 +62,9 @@ verdict: "high 2건 — 반영 권장(자문)"
 - `slide_logo` — 좌상단에 로고/워드마크 박음. 비우고 Premiere 오버레이.
 - `chart_misalign` — 막대 바닥선/라벨 어긋남.
 - `heavy_or_sentence` — weight 800-900 / 문장형 ~다.
-- `idle_or_over` — idle 둥둥/ambient, 1.5초 초과 모션.
+- `idle_or_over` — idle 둥둥/ambient, *리빌* 모션 1.5초 초과. (의미화 모션은 예외 — 발화 길이에 맞춰 전개)
 - `off_brand` — 다크 배경/골드 등 비-HP 잔재.
+- `static_over_long_narration` — 긴 내레이션(>8초) 위 슬라이드가 ≤1.5초 만에 멈춰 지루(2026-06 핵심). 큰 숫자=카운트업+성장 원(`Dynamics.tsx`), 은유=메타포 비주얼/b-roll, 또는 비트 잘게.
 
 ## slide-qa와의 분리 (중요)
 

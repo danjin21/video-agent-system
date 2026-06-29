@@ -10,9 +10,10 @@
     {"id": "slide_logo", "severity": "mid", "smell": "좌상단에 로고/텍스트 워드마크를 슬라이드에 박음", "fix": "top_left 비우고 Premiere 전역 오버레이"},
     {"id": "chart_misalign", "severity": "high", "smell": "막대 바닥선/데이터 라벨 어긋남", "fix": "공통 베이스라인 + 막대 기준 라벨 정렬"},
     {"id": "heavy_or_sentence", "severity": "high", "smell": "weight 800-900 / 장표 문장형(~다)·중타이틀", "fix": "디스플레이 600(임팩트 700), 체언 종결만"},
-    {"id": "idle_or_over", "severity": "high", "smell": "idle 둥둥·ambient 루프 / 1.5초 초과 모션", "fix": "≤1.5초 완결+정지, idle 금지"},
+    {"id": "idle_or_over", "severity": "high", "smell": "idle 둥둥·ambient 루프 / 등장(리빌) 모션이 1.5초 초과", "fix": "리빌 모션 ≤1.5초 완결+정지, idle 금지. (단 카운트업·게이지·곡선 같은 '의미화 모션'은 발화 길이에 맞춰 전개 — 여기에 1.5초 룰 적용 금지)"},
     {"id": "off_brand", "severity": "high", "smell": "다크 배경·골드 등 비-HP 잔재", "fix": "화이트/블루 2면, 주체 #024ad8 / 강조 코랄 #ff5050"},
     {"id": "long_dead_hold", "severity": "mid", "smell": "중간 악장 끝에 마지막 콘텐츠/오디오 후 대기가 길다(3~5초 죽은 시간)", "fix": "중간 슬라이드 끝 대기 ~1.5초(45f). 5초 end-hold는 최종 슬라이드만"},
+    {"id": "static_over_long_narration", "severity": "high", "smell": "긴 내레이션(>8초) 위에 슬라이드가 ≤1.5초 만에 다 끝나고 멈춰 있어 지루함(2026-06: '2분 30초부터 정적')", "fix": "긴 비트엔 의미화 모션(카운트업+성장 원/막대, 게이지 2단, 곡선 lift, 메타포 전개) 배치 또는 비트를 잘게 쪼개 점진 노출. 큰 숫자는 Dynamics.tsx CountUp/GrowCircle로"},
     {"id": "slow_term", "severity": "mid", "smell": "비트 사이 텀이 늘어져 지루함", "fix": "발화 비트 간 불필요한 공백 제거, 모션은 ≤1.5초 후 다음 비트로"}
   ]
 }

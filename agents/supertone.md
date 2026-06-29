@@ -136,7 +136,27 @@ curl -X POST "https://supertoneapi.com/v1/text-to-speech/$SUPERTONE_VOICE_ID" \
 4. 캐시 적중 → 스킵
 5. 미스 → 사용자에게 비용/시간 보고 (첫 호출 시) → OK 받고 API 호출
 6. WAV 저장 + duration 측정 (ffprobe)
-7. duration_manifest.json 업데이트
+7. **끝음 QA** (아래 섹션) — `voice_qa.py` 실행 → flag된 beat는 자동 재생성 루프(최대 2회) → 실패 시 escalate
+8. duration_manifest.json 업데이트
+
+## 🎙️ 끝음 QA & 자동 재생성 (2026-06 사용자 요구)
+
+생성된 음성의 **문장 끝**이 가끔 이상하다: 끝음 피치가 올라가거나(의문문처럼, `rising`), 맥아리 없이 꺼진다(`limp`). 25개 WAV를 사람이 일일이 듣는 건 비현실적 → **객관 검수 후 이상한 것만 자동 재생성**한다.
+
+**도구: `scripts/voice_qa.py`** (무설치 — ffmpeg + Python 표준 라이브러리). 자기상관 F0 + RMS로 끝 구간을 분석해 `rising`/`limp` flag + **문장별 곡선 SVG**(사람이 곡률 확인용)를 낸다. 임계값은 `templates/voice-qa-rubric.json`(프로젝트는 `audio/voice-qa-rubric.json`로 복사·튜닝).
+
+```bash
+python3 scripts/voice_qa.py <project>/04-audio/beats --rubric <project>/audio/voice-qa-rubric.json --out <project>/04-audio/voice_qa
+# → report.json (beat별 flags/verdict/수치) + <beat>.contour.svg (F0·RMS 곡선)
+```
+
+**자동 재생성 루프 (flag된 beat마다, 최대 2회 → 실패 시 escalate):**
+1. **시도 1 — 문장부호 보정**: `rising`이면 끝 말줄임표/물음표 제거하고 마침표 강제(평서 종결 유도). `limp`이면 마지막 어절을 또렷하게(불필요한 trailing 조사/공백 정리). 보정한 *발화 텍스트*로만 재생성(원본 표기·자막 불변). 동일 voice/speed.
+2. **시도 2 — 파라미터/후처리**: speed 1.05→1.0 으로 또렷하게. 또는 ffmpeg로 끝 무음 과다 트림/짧으면 30~60ms 패딩.
+3. 매 재생성마다 voice_qa.py 재판정. **통과하면 채택**(input_hash 갱신, 캐시 저장). 2회 후에도 flag면 **escalate**.
+4. **escalate = AskUserQuestion**: 해당 beat의 before/after 곡선 SVG 경로를 제시하고 옵션 — "보이스 재녹음 / 발화 텍스트 직접 수정 / 그대로 사용 / 속도 더 조정". (자동 판단 금지)
+
+**주의**: voice_qa는 1차 필터다. 자기상관 F0는 옥타브 오류로 과도한 점프를 낼 수 있어 `rising_max_semitones`로 가짜 양성을 걸러내고, `limp`은 화자 코퍼스(전체 beat) 평균 대비 상대 판정한다. **오탐/미탐이 잦으면 rubric 임계값을 그 프로젝트 곡선과 대조해 튜닝**(자동 재생성 폭주 방지). 정확도가 더 필요하면 사용자 승인 후 `pip install numpy`로 정밀화 가능(기본은 무설치).
 
 ## 좋은 음성 생성의 조건
 
@@ -172,3 +192,5 @@ curl -X POST "https://supertoneapi.com/v1/text-to-speech/$SUPERTONE_VOICE_ID" \
 - voice_id 사용자 보여주기 (보안)
 - duration 추정값 사용 (반드시 ffprobe 실측)
 - `speed_per_word`/`pause_after_sentence` 같은 가짜 파라미터 API body에 넣기
+- **끝음 QA 미통과(rising/limp) 음성을 그대로 다음 단계(avatar/remotion)로 넘기기** — 재생성 2회 또는 escalate 거친 뒤에만 통과
+- 원본 표기/자막을 끝음 보정한답시고 건드리기 (보정은 *발화 텍스트*에만)

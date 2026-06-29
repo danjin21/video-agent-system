@@ -1,0 +1,36 @@
+{
+  "_note": "voice_qa.py 끝음 검수 임계값. 프로젝트는 audio/voice-qa-rubric.json으로 복사·튜닝. 실제 클립의 SVG 곡선과 대조해 임계값 보정.",
+  "version": "seed-2026-06-29",
+
+  "sr": 16000,
+  "win_ms": 25,
+  "hop_ms": 10,
+
+  "f0_min": 80,
+  "f0_max": 350,
+  "voicing_min": 0.30,
+
+  "silence_ratio": 0.06,
+  "tail_ms": 600,
+  "end_ms": 300,
+  "ref_lo_ms": 600,
+  "ref_hi_ms": 300,
+
+  "rising_semitones": 1.2,
+  "rising_max_semitones": 7.0,
+  "rising_min_voiced": 3,
+  "limp_floor_ratio": 0.06,
+  "limp_rel_ratio": 0.22,
+  "limp_corpus_frac": 0.55,
+  "limp_end_ms": 150,
+
+  "_tuning": {
+    "rising_semitones": "끝(end 300ms) 중앙 F0가 직전(ref) 대비 이 반음 이상 높으면 rising 후보. 한국어 평서문은 보통 하강 → 1.0~1.5 권장. 오탐 많으면 ↑.",
+    "rising_max_semitones": "이보다 큰 점프는 자기상관 F0 옥타브 오류로 보고 rising에서 제외(가짜 양성 차단).",
+    "rising_min_voiced": "종결 구간 voiced 프레임 최소 개수. 잡음/숨소리로 인한 단발 오검 방지.",
+    "limp_floor_ratio": "끝 150ms 평균 RMS가 peak의 이 비율 미만이면 limp(절대 바닥 안전망). 정상 종결도 약해지므로 낮게(0.05~0.08).",
+    "limp_rel_ratio": "끝 150ms RMS / 발화부 median RMS 가 이 미만이면 limp.",
+    "limp_corpus_frac": "끝RMS/peak 가 화자 전체(코퍼스) median 의 이 배 미만이면 limp — '이 화자 평소 종결보다 유난히 약함'. 핵심 상대 지표. 0.45~0.6에서 튜닝.",
+    "voicing_min": "자기상관 정규화 피크 voicing 문턱. 잡음 많으면 ↑, 무성 구간 F0 오검출되면 ↑."
+  }
+}
