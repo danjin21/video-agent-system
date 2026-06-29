@@ -64,7 +64,12 @@ verdict: "high 2건 — 반영 권장(자문)"
 - `heavy_or_sentence` — weight 800-900 / 문장형 ~다.
 - `idle_or_over` — idle 둥둥/ambient, *리빌* 모션 1.5초 초과. (의미화 모션은 예외 — 발화 길이에 맞춰 전개)
 - `off_brand` — 다크 배경/골드 등 비-HP 잔재.
-- `static_over_long_narration` — 긴 내레이션(>8초) 위 슬라이드가 ≤1.5초 만에 멈춰 지루(2026-06 핵심). 큰 숫자=카운트업+성장 원(`Dynamics.tsx`), 은유=메타포 비주얼/b-roll, 또는 비트 잘게.
+- `static_over_long_narration` — 긴 내레이션(>8초) 위 슬라이드가 멈춰 지루.
+- `sparse_text_slide` — 개념 슬라이드가 글자만(도형 0개). → 노드·원·커넥터·아이콘 다이어그램으로(`Diagrams.tsx`).
+- `slow_single_tween` — 한 요소를 문장 길이만큼 느리게 끔(8초 게이지 크롤=최악). → '빠른 여러 개' 도형 pop으로.
+- `metaphor_not_drawn` — 은유(저수지/운동장/근육)가 글자로만. → 픽토그램 도형 모션.
+- `wrong_icon` — 아이콘이 개념과 안 맞음(AX=칩 ✕). → 즉시 읽히는 의미(수익률=%, AX=로봇).
+- `emphasis_no_ghost` — 결정타가 작게 흘러감. → 대형 고스트 타이포 1회(`GhostWord`).
 
 ## slide-qa와의 분리 (중요)
 

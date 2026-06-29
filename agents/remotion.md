@@ -96,7 +96,8 @@ const Slide05NewNormalTable: React.FC = () => {
 - **모션 2종 분리 (2026-06 — 정적 슬라이드 방지)**:
   - **리빌 모션**(등장): ≤1.5초(45f@30fps) 내 완결 후 정지. `interpolate` 입력 구간 ≤45f, 완결 후 클램프 고정, **idle 루프·둥둥 모션 금지**.
   - **의미화 모션**(카운트업·성장 원/막대·게이지·곡선 draw): **발화 비트 길이에 맞춰 전개**(`interpolate(frame,[beatStart+δ, 수치발화프레임], [from,to])`), 수치 발화 순간 정착 후 hold. 1.5초로 자르지 말 것. 무한 루프가 아니므로 idle 금지에 해당하지 않음.
-- **공용 의미화 컴포넌트 `Dynamics.tsx`** — `CountUp`(숫자 카운트업+pop), `GrowCircle`(면적∝값 성장 원+중앙 카운트업), `TiltField`(기울어진 운동장 메타포)는 `codex-workspace/<deck>/Dynamics.tsx`에 공용으로 두고 import해 재사용. 큰 숫자는 그냥 띄우지 말고 이 컴포넌트로. (참조 구현: `codex-workspace/cfo-akjang-hp/Dynamics.tsx`)
+- **공용 의미화 컴포넌트 `Dynamics.tsx`** — `CountUp`(숫자 카운트업+pop), `GrowCircle`(면적∝값 성장 원), `TiltField`. 큰 숫자는 그냥 띄우지 말고 이걸로. (참조: `codex-workspace/cfo-akjang-hp/Dynamics.tsx`)
+- **공용 다이어그램 키트 `Diagrams.tsx`** — `Node`(원+아이콘/글리프+라벨, pop), `Connector`(노드 간 선/화살표 draw), `Icon`(의미 우선 라인 픽토그램: %·robot·drop·dumbbell·person·flag·building·trend…), `Reservoir`(저수지), `RollingBall`(구르는 공+좁아짐), `GhostWord`(대형 옅은 강조 타이포). **개념/메시지 슬라이드는 글자 대신 이 도형들로 다이어그램화.** 도형은 빠른 pop(≤0.7s)으로 여러 개 연달아 — 느린 단일 트윈/8초 게이지 크롤 금지. (참조: `codex-workspace/cfo-akjang-hp/Diagrams.tsx`)
 - **비트별 점진 노출 — 한 화면에 한 번에 덤프 금지 (2026-06 핵심).** 모든 요소의 등장/하이라이트는 conti가 준 **해당 beat 시작 프레임**에 건다. 처음부터 다 보이게 하지 말 것. 예) 곡선은 축+회색 먼저, 파란 곡선은 그 beat에; 3카드는 각 beat에 하나씩; 표 행 하이라이트는 발화 beat마다 이동. `interpolate(frame,[beatStart, beatStart+안], ...)` 형태로 beat에 정확히 물린다.
 - **conti는 음성(WAV) 실측 후 realization** 된 타이밍이다 — 추측 프레임 금지. 음성이 (재)생성되면 그 frame으로 **재렌더**.
 - **최종 합본 = `MasterDeck` 컴포지션** — 아바타·장표·b-roll 세그먼트 mp4를 한 타임라인에 `<Sequence>`로 순서 배치(컷 전환), BGM은 `<Audio volume loop>` 덕킹. 최종 mp4 한 방 렌더(`MasterDeck`). 세그먼트 1개만 바뀌면 그 세그먼트만 재렌더 후 마스터 재합성.
