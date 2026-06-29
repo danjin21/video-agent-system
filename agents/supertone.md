@@ -63,6 +63,7 @@ API에서 클론 보이스를 쓰려면 별도로 `POST /v1/custom-voices/cloned
 ### per_beat 모드 (기본)
 - `<slide_dir>/04-audio/beat-N.wav`
 - `<slide_dir>/04-audio/beat-N.input_hash` — 텍스트+파라미터 hash
+- **`<slide_dir>/04-audio/beat-N.txt` — 그 beat의 발화 원문(필수)**. 재생성/끝음 QA가 beat 텍스트를 정확히 알아야 하므로 반드시 사이드카로 저장한다. (2026-06: 텍스트 미저장 → 대본에서 beat 경계 역추정 실패로 재생성 불가 사례. 발화 원문 저장은 끝음 QA·재생성의 전제다.)
 - `<slide_dir>/04-audio/duration_manifest.json`
 
 ### per_slide 모드
