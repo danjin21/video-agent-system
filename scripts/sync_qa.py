@@ -46,12 +46,42 @@ def phrases(text):
     """문장부호로 프로소디 구절 분리(쉼표·마침표·가운뎃점 등 = 발화 시 쉼)."""
     return [p.strip() for p in re.split(r'[,.!?·…]+', text) if p.strip()]
 
+# ───────── ASR 단어 타임스탬프 (ground truth, 추정 제거) ─────────
+_ASR = {}
+def asr_words(wav, model="small"):
+    """faster-whisper로 단어별 (단어, 시작초) 리스트. 비트 내 상대 시각."""
+    if wav in _ASR: return _ASR[wav]
+    from faster_whisper import WhisperModel
+    if "_m" not in _ASR:
+        _ASR["_m"] = WhisperModel(model, device="cpu", compute_type="int8")
+    segs, _ = _ASR["_m"].transcribe(wav, language="ko", word_timestamps=True)
+    words = [(w.word.strip(), w.start) for s in segs for w in s.words]
+    _ASR[wav] = words
+    return words
+
+def _norm(s):
+    return re.sub(r'[^0-9A-Za-z가-힣]', '', s).upper()
+
+# 발음치환 역매핑 — TTS엔 "에이엑스"로 보냈어도 ASR은 'AX'로 적을 수 있음
+WORD_ALIASES = {"AX": ["AX", "에이엑스", "액스", "에이엑스입니다"], "AI": ["AI", "에이아이"],
+                "ETF": ["ETF", "이티에프"], "OCIO": ["OCIO", "오씨아이오"]}
+def find_word_time(words, target):
+    cands = WORD_ALIASES.get(target.upper(), [target])
+    cn = [_norm(c) for c in cands]
+    for w, t in words:
+        wn = _norm(w)
+        if any(c and c in wn for c in cn):
+            return t
+    return None
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("beats_dir")
     ap.add_argument("--triggers", required=True)
     ap.add_argument("--fps", type=int, default=30)
     ap.add_argument("--tol", type=float, default=0.20, help="허용 오차(초)")
+    ap.add_argument("--asr", action="store_true", help="faster-whisper 단어 타임스탬프로 정밀 검증(권장, ground truth)")
+    ap.add_argument("--model", default="small", help="ASR 모델(tiny/base/small/medium)")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
     fps = a.fps
@@ -82,7 +112,14 @@ def main():
             word = it.get("word")
             phr = phrases(beat_text(slide, it["beat"]) or "")
             target_frame, basis = None, ""
-            if word and phr and ons_frames:
+            # 1순위: ASR 단어 타임스탬프 (ground truth — 추정 없음)
+            if a.asr and word and os.path.exists(wav):
+                t = find_word_time(asr_words(wav, a.model), word)
+                if t is not None:
+                    target_frame = round(bstart + t*fps)
+                    basis = f'ASR "{word}" @{t:.2f}s(beat) → f{target_frame}'
+            # 2순위: 구절↔onset 휴리스틱 (무설치)
+            if target_frame is None and word and phr and ons_frames:
                 # 단어가 든 구절 index → 같은 index의 onset (구절 수와 onset 수가 맞을 때 1:1)
                 idx = next((i for i, p in enumerate(phr) if word in p), None)
                 if idx is not None:

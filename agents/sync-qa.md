@@ -36,8 +36,16 @@ python3 scripts/sync_qa.py <project>/04-audio/beats --triggers <triggers.json> -
 - 출력 `report.json`: `phrases`, `onset_frames`, `target`, `target_frame`, `delta_s`, `verdict`.
 - 실제 사례: AX 노드를 314(비트 시작 "다른 하나는…")에 넣으면 → `FLAG: "AX"=구절2/4 → onset 349 인데 트리거 314 (-1.17s)`. 349로 교정하면 `ok`.
 
-## 정밀도 한계 / 업그레이드
-구절↔onset 매핑은 *쉼표·마침표가 실제 발화 쉼과 일치할 때* 정확하다(TTS는 대개 일치). 쉼 없이 이어지는 문장은 구절 수 > onset 수가 되어 마지막 구절들이 한 onset에 몰릴 수 있다 → 그 단어에 정확히 맞추려면 **비트 분할**(그 구절을 자기 beat로) 또는 사용자 승인 후 **Whisper 등 ASR 단어 타임스탬프**로 정밀화.
+## ⭐ ASR 모드 = ground truth (권장, `--asr`)
+```bash
+python3 scripts/sync_qa.py <beats> --triggers <t.json> --asr --model small
+```
+- `faster-whisper`로 비트 WAV를 받아써 **단어별 타임스탬프**를 얻고, 트리거의 `word`가 실제 발화되는 프레임과 대조한다. 발음치환(AX→에이엑스 등)은 `WORD_ALIASES`로 역매핑.
+- **이게 정답인 이유 (2026-06 사고)**: 구절↔onset 휴리스틱은 *내가 가정한 비트 텍스트*에 의존한다. 그런데 실제 TTS 내레이션이 대본과 다를 수 있다(akjang-14: 대본상 'AX'가 b3라 가정했으나, 실제 음성은 b2에서 'AX입니다'를 8.9초에 발화 — 가정이 틀려 검증도 틀림). **ASR은 가정 없이 실제 음성에서 단어 위치를 읽으므로 이 함정을 없앤다.** 타이밍 의심이 있으면 반드시 `--asr`로 확인.
+- 설치 필요(`pip install faster-whisper`, 최초 1회 모델 다운로드). 미설치 시 아래 휴리스틱으로 폴백하되, **휴리스틱 결과는 "가정 기반"임을 명시**하고 의심 시 ASR 권고.
+
+## 정밀도 한계 (휴리스틱 모드, ASR 미설치 시)
+구절↔onset 매핑은 *쉼표·마침표가 실제 발화 쉼과 일치하고 비트 텍스트가 실제 음성과 일치할 때만* 정확하다. **비트 텍스트가 실제 TTS와 다르면 틀린다** → 그래서 supertone가 실제 발화 텍스트를 `beat-N.txt`로 저장해야 하고(supertone.md), 의심 시 ASR이 최종 심판.
 
 ## 작업 절차
 1. conti realization(프레임 확정) 후, 슬라이드별 트리거 맵을 만든다(요소 등장/채움/강조 프레임).
