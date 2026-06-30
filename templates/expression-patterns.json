@@ -14,8 +14,15 @@
       "id": "node_highlight", "name": "다이어그램 요소 하이라이트",
       "use": "그 단어를 말할 때 해당 노드/막대/표 행이 채워짐·점등·pop (예: 'AX'→로봇 노드 파랑 채움)",
       "trigger": "그 단어 발화 프레임(ASR)",
-      "visual": "윤곽→채움 전환 또는 색 점등 + 살짝 pop(≤0.5s)",
+      "visual": "회색 윤곽→색 채움(점등) + 아이콘 흰색 + **버블 pop(scale 0.6→1.08→1, 커졌다 작아짐)**. 사용자 호평 모션(2026-06).",
       "component": "Diagrams.tsx Node(activeAt) / 표 행 배경 하이라이트"
+    },
+    {
+      "id": "contrast", "name": "대비 (A vs B)",
+      "use": "두 개념 대비 (예: 큰 vs 좋은, 양적 vs 질적)",
+      "trigger": "각 항목 단어 발화 프레임",
+      "visual": "좌=달성(blue ✓) / 우=과제(coral ?) 노드 버블 pop + 가운데 'vs', 이어 'A→B' 변환 화살표",
+      "component": "Diagrams.tsx ContrastPair (+ Connector)"
     },
     {
       "id": "count_up", "name": "수치 카운트업",

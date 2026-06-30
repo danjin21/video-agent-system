@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 0.22.0 (2026-06-29)
+
+**확정 애니메이션·디자인 요소 전부 키트에 승격 (재사용화).**
+
+- 사용자 호평한 **대비(큰 vs 좋은) + 노드 버블 pop**(회색→색, 0.6→1.08→1 커졌다 작아짐) 등 인라인이던 양식을 재사용 컴포넌트로 승격.
+- `Diagrams.tsx`에 추가: **`ContrastPair`**(A vs B 대비) · **`Banner`**(pop+shine) · **`Header`**(kicker+타이틀) · **`KeywordReveal`**(대형 글자 스태거 AX·결정·실행). akjang-11을 ContrastPair로 리팩터(화면 동일 dogfood).
+- 키트 총 14개 컴포넌트. `DIAGRAM_KIT.md`에 노드 버블 모션·대비·배너·키워드리빌 레시피 추가, `expression-patterns.json`에 `contrast` 패턴 + node_highlight 버블 pop 명시.
+- 원칙 재확인: **확정된 양식은 인라인 금지, 키트 컴포넌트로 승격**.
+
+
 ## 0.21.0 (2026-06-29)
 
 **인포 다이어그램 키트를 플러그인에 실제 탑재 (재현 가능화).**

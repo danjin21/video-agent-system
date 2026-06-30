@@ -3,7 +3,7 @@
 import {useCurrentFrame, interpolate, Easing} from 'remotion';
 
 const FF = '"Pretendard","Apple SD Gothic Neo","Noto Sans KR",Arial,sans-serif';
-const BLUE = '#024ad8', INK = '#1a1a1a', CORAL = '#ff5050', GRAPH = '#636363', SOFT = '#c9e0fc';
+const BLUE = '#024ad8', INK = '#1a1a1a', CORAL = '#ff5050', GRAPH = '#636363', SOFT = '#c9e0fc', GRAY = '#c2c2c2';
 const C = {extrapolateLeft: 'clamp' as const, extrapolateRight: 'clamp' as const};
 const SOFT_LIFT = '0 2px 8px rgba(26,26,26,0.08)';
 
@@ -192,6 +192,69 @@ export const ConvergeCurves = ({items, conv, convAt, width = 1920, height = 1080
       })}
       <circle cx={conv.x} cy={conv.y} r={interpolate(f, [convAt, convAt + 15], [0, 70], C)} fill={onBlue ? '#fff' : BLUE} />
     </svg>
+  );
+};
+
+// ───────── 대비 한 쌍 (A vs B) — 두 노드 + 'vs' ─────────
+// 좌=달성/긍정(blue ✓), 우=과제/질문(coral ?) 식. 노드는 버블 pop으로 등장하며 채워짐.
+export const ContrastPair = ({left, right, y = 500, r = 120, cx = 960, gap = 560, vsAt, surface = 'white'}: {
+  left: {glyph?: string; icon?: IconName; label: string; sub?: string; start: number; activeAt?: number; fill?: string};
+  right: {glyph?: string; icon?: IconName; label: string; sub?: string; start: number; activeAt?: number; fill?: string};
+  y?: number; r?: number; cx?: number; gap?: number; vsAt: number; surface?: 'white' | 'blue';
+}) => {
+  const f = useCurrentFrame();
+  const lx = cx - gap / 2, rx = cx + gap / 2;
+  return (
+    <>
+      <Node x={lx} y={y} r={r} start={left.start} activeAt={left.activeAt} glyph={left.glyph} icon={left.icon} label={left.label} sub={left.sub} fill={left.fill} surface={surface} />
+      <Node x={rx} y={y} r={r} start={right.start} activeAt={right.activeAt} glyph={right.glyph} icon={right.icon} label={right.label} sub={right.sub} fill={right.fill ?? CORAL} surface={surface} />
+      <div style={{position: 'absolute', left: 0, right: 0, top: y - 30, textAlign: 'center', fontSize: 40, fontWeight: 700, color: GRAY, fontFamily: FF, opacity: appear(f, vsAt)}}>vs</div>
+    </>
+  );
+};
+
+// ───────── 하단 배너 (pop + 흰 shine 스윕) ─────────
+export const Banner = ({text, start, onBlue = false}: {text: string; start: number; onBlue?: boolean}) => {
+  const f = useCurrentFrame();
+  const op = interpolate(f, [start, start + 16], [0, 1], C);
+  const popS = interpolate(f, [start, start + 7, start + 14], [0.92, 1.06, 1], {...C, easing: Easing.out(Easing.cubic)});
+  const sh = interpolate(f, [start + 6, start + 28], [-160, 360], C);
+  return (
+    <div style={{position: 'absolute', left: 80, right: 80, bottom: 64, height: 96, opacity: op, transform: `scale(${popS})`, fontFamily: FF}}>
+      <div style={{position: 'absolute', inset: 0, backgroundColor: BLUE, border: onBlue ? '2px solid ' + SOFT : 'none', borderRadius: 4, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+        <span style={{fontSize: 44, fontWeight: 600, color: '#fff'}}>{text}</span>
+        <div style={{position: 'absolute', top: 0, bottom: 0, width: '34%', background: 'linear-gradient(100deg,transparent,rgba(255,255,255,0.55),transparent)', transform: `translateX(${sh}%) skewX(-18deg)`}} />
+      </div>
+    </div>
+  );
+};
+
+// ───────── 헤더 (kicker + 타이틀) ─────────
+export const Header = ({kicker, title, onBlue = false}: {kicker: string; title: string; onBlue?: boolean}) => {
+  const f = useCurrentFrame();
+  return (
+    <div style={{position: 'absolute', left: 0, right: 0, top: 150, textAlign: 'center', opacity: interpolate(f, [4, 20], [0, 1], C), fontFamily: FF}}>
+      <div style={{fontSize: 26, fontWeight: 600, letterSpacing: 3, color: onBlue ? SOFT : BLUE}}>· {kicker}</div>
+      <div style={{fontSize: 64, fontWeight: 600, color: onBlue ? '#fff' : INK, marginTop: 14}}>{title}</div>
+    </div>
+  );
+};
+
+// ───────── 대형 키워드 리빌 (글자 스태거 scale-pop) — 결정타 단어 (AX·결정·실행) ─────────
+export const KeywordReveal = ({text, start, surface = 'blue', size = 320, perLetter = 8}: {
+  text: string; start: number; surface?: 'white' | 'blue'; size?: number; perLetter?: number;
+}) => {
+  const f = useCurrentFrame();
+  const onBlue = surface === 'blue';
+  const bg = interpolate(f, [start, start + 12], [0, 1], C);
+  return (
+    <div style={{position: 'absolute', inset: 0, background: onBlue ? BLUE : '#fff', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: size * 0.06, opacity: bg, fontFamily: FF}}>
+      {[...text].map((ch, i) => {
+        const s = start + i * perLetter;
+        const sc = interpolate(f, [s, s + 8, s + 13], [0.6, 1.12, 1], {...C, easing: Easing.out(Easing.cubic)});
+        return <span key={i} style={{fontSize: size, fontWeight: 700, color: onBlue ? '#fff' : INK, lineHeight: 1, display: 'inline-block', transform: `scale(${sc})`}}>{ch}</span>;
+      })}
+    </div>
   );
 };
 
