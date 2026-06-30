@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 0.21.0 (2026-06-29)
+
+**인포 다이어그램 키트를 플러그인에 실제 탑재 (재현 가능화).**
+
+- **문제(감사로 발견)**: 저수지·세 곡선 수렴 같은 양식이 좋다는 피드백을 받았으나, 실제 컴포넌트 코드는 *이 프로젝트 워크스페이스에만* 있었고(플러그인엔 텍스트 참조뿐), `ConvergeCurves`는 한 슬라이드에 **인라인**(재사용 불가), `ConcentricRings`는 미구현 → 새 영상에서 재현 불가.
+- **`templates/remotion/Diagrams.tsx`·`Dynamics.tsx` 탑재** — 13개 컴포넌트(Node/Connector/Icon/GhostWord/Reservoir/RollingBall/ConvergeCurves/ConcentricRings/CountUp/GrowCircle/TiltField…). 새 덱은 복사해 import.
+- **`ConvergeCurves`·`ConcentricRings`를 재사용 컴포넌트로 승격**(인라인→컴포넌트), akjang-08을 ConvergeCurves로 리팩터(화면 동일).
+- **`templates/remotion/DIAGRAM_KIT.md` 쿡북** — 컴포넌트 레퍼런스 + 시그니처 다이어그램 레시피(저수지/수렴/노드체인/대비/동심원/운동장/큰숫자) + 패턴↔컴포넌트 매핑. "양식은 인라인 1회성 금지, 컴포넌트로 승격" 원칙.
+- `remotion.md`·`layouter.md`가 프로젝트 경로 대신 **탑재 템플릿**을 가리키도록 갱신.
+
+
 ## 0.20.0 (2026-06-29)
 
 **ASR 필수화 + 표현 패턴 라이브러리 (콘티가 매 문장·핵심어 → 명명 패턴).**

@@ -119,7 +119,7 @@ tools: Read, Write
 - **은유는 픽토그램 도형으로**: 두 근육 = 두 원(아이콘) + 링크, 저수지 = 분지+물방울+수위, 운동장 = 구르는 공+좁아지는 바닥, 세 곡선 = 곡선 3개가 한 점으로 수렴. 글자로만 두지 말 것.
 - **아이콘은 청중이 *즉시 읽는* 의미로**: 수익률=`%`, AI/AX=로봇, 성장=상승 화살표, 자금/유동성=물방울, 점유율=게이지/파이. **빗나간/추상 메타포 금지**(예: AX를 반도체 칩으로 → 1초 안에 안 읽히면 틀린 아이콘). 의미 우선.
 - **강조 키워드 = 대형 고스트 타이포**(`ghost_emphasis`): 결정타 숫자/단어를 콘텐츠 뒤·옆에 크게 옅게(opacity ~0.08) 한 번 더. 슬라이드당 1회.
-- Remotion 공용 키트 **`Diagrams.tsx`**(`Node`/`Connector`/`Icon`/`Reservoir`/`RollingBall`/`GhostWord`) + `Dynamics.tsx`(`CountUp`/`GrowCircle`) 재사용.
+- Remotion 공용 키트(플러그인 탑재): **`templates/remotion/Diagrams.tsx`+`Dynamics.tsx`를 덱에 복사**해 재사용 — `Node`/`Connector`/`Icon`/`GhostWord`/`Reservoir`(저수지)/`RollingBall`(운동장)/`ConvergeCurves`(곡선 수렴)/`ConcentricRings`(동심 확장)/`CountUp`/`GrowCircle`. 컴포넌트·시그니처 레시피: **`templates/remotion/DIAGRAM_KIT.md`**.
 
 ## 데이터 시각화 컴포넌트 카탈로그 (2026-06 학습 — 장표는 데이터로 채운다)
 
