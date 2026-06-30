@@ -145,7 +145,7 @@ tools: Read, Write, Edit, Bash, Agent, Glob, Grep, AskUserQuestion
 장표/렌더가 나오면 **3개 검수를 반드시 돌린다. 사람이 눈으로 한 번 봤다고 생략 금지(2026-06 사용자: 위치/타이밍 검증 에이전트를 *항상* 돌려라).**
 
 1. **`slide-qa` (공간 — 객관 게이트, 차단)** → 정지(end-hold) 프레임 스크린샷 → 픽셀 판독 → `07-qa/qa_report.yaml`. 겹침·**화면 밖 잘림(off-canvas, 예: 대형 고스트 "10년"이 가장자리 잘림)**·구도 쏠림·정렬·팔레트 위반 등 **high는 재작업 → 재검수, high 0건이어야 통과.**
-2. **`sync-qa` (시간 — 객관 게이트, 차단)** → conti realization 후, 각 애니메이션 트리거 프레임이 **측정된 발화 onset/비트 경계**에 맞는지 `scripts/sync_qa.py`로 검증 → `04-audio/sync_qa/report.json`. **추정 타이밍(mid-beat) FLAG는 측정 onset으로 교정하거나 비트 분할 후 재렌더 → 전부 ok여야 통과.** (akjang-14 'AX' 추정 타이밍 사고 방지.)
+2. **`sync-qa` (시간 — 객관 게이트, 차단)** → conti realization 후, 각 애니메이션 트리거 프레임이 **실제 발화 단어 타임스탬프**에 맞는지 `scripts/sync_qa.py --asr`(faster-whisper, `pip install faster-whisper`)로 검증 → `04-audio/sync_qa/report.json`. **ASR이 ground truth — 대본 가정으로 통과시키지 말 것**(akjang-14: 대본상 'AX'가 b3라 봤으나 실제론 8.9초 발화 → 가정 검증의 함정). FLAG는 측정 단어 프레임으로 교정 후 재렌더 → 전부 ok여야 통과.
 3. **`design-critic` (취향 — 자문, 비차단, 학습형)** → 같은 프레임을 시니어 디자이너 시선으로 비평 → `07-qa/design_critique.yaml`. 도형 없는 텍스트 슬라이드·빗나간 아이콘·밋밋함 등 취향 냄새. 제안을 사용자에게 보여 채택/기각받고 `design/taste-rubric.json`에 학습.
 
 - **렌더 전 프리뷰에서 먼저** 돌리면(특히 design-critic) 싸게 걸러진다.

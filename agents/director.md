@@ -34,6 +34,7 @@ tools: Read, Write, Bash, WebSearch, WebFetch, AskUserQuestion
 - **비교/변화** → 곡선 lift/역전, 비교 노드 등(느린 게이지 크롤 지양).
 - **강조 키워드** → 대형 고스트 타이포(`GhostWord`) 1회.
 - **역동성 = 빠른 여러 도형**: 한 요소를 천천히 끌지 말고, 여러 도형을 빠른 pop(≤0.7s)으로 연달아.
+- **표현 패턴 카탈로그에서 고른다** — `templates/expression-patterns.json`(ghost_emphasis/node_highlight/count_up/keyword_reveal/draw_on/metaphor_motion/connector_draw/marker_point/underline_sweep/chip_in). 개념마다 적합한 패턴을 제안하고, continuity가 ASR 단어 프레임에 바인딩한다.
 - **메타포(예: "기울어진 운동장", "저수지", "벽")** → 비트별로 표현 수단을 고른다:
   - **결정타·감정 고조** → 실사 b-roll(플레이스홀더 슬롯 → 나중 스왑).
   - **보조·개념 설명** → 아이콘/일러스트 모션(예: 기울어진 운동장 = `TiltField` — 바닥이 기울고 공이 낮은 쪽으로 굴러내림). footage 없이 100% 제어·톤 일관·즉시 렌더.

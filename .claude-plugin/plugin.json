@@ -2,7 +2,7 @@
   "name": "video-agent-system",
   "displayName": "Video Production Agent System",
   "description": "경영전략회의 보고서를 영상으로 만드는 사이클 인지 에이전트 시스템. 메인 + 17개 전문 서브에이전트(글작가, 연출, 스토리보드, 콘티, 장표검수, 타이밍검수, 디자인비평, 슈퍼톤, 헤이젠, 리모션, 프리미어 등) + cycle manager 도구.",
-  "version": "0.19.0",
+  "version": "0.20.0",
   "author": {
     "name": "Sam",
     "email": "ekswlsgud@gmail.com"

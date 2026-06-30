@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 0.20.0 (2026-06-29)
+
+**ASR 필수화 + 표현 패턴 라이브러리 (콘티가 매 문장·핵심어 → 명명 패턴).**
+
+- **ASR을 콘티 워크플로 필수 단계로** (`continuity.md`): supertone WAV → `sync_qa.py --asr`로 단어별 타임스탬프 → 모든 시각 트리거를 그 단어 발화 프레임에 바인딩(추정 금지) → 렌더 후 `sync-qa --asr` 재검증. `main` [5-F]도 ASR=ground truth 명시.
+- **표현 패턴 라이브러리** `templates/expression-patterns.json` — 명명된 시각 장치 10종: `ghost_emphasis`(큰 강조 배경 고스트)·`node_highlight`(단어 언급 시 다이어그램 요소 점등)·`count_up`·`keyword_reveal`·`draw_on`·`metaphor_motion`(저수지/공)·`connector_draw`(함께·동시에)·`marker_point`·`underline_sweep`·`chip_in`(발화된 것만). 각 패턴 trigger=ASR 단어 프레임.
+- **콘티 산출물에 매 문장·핵심어별 `{word, t_frame(ASR), pattern, target}` 필수** — "큰 강조면 배경에 '10년', 다이어그램이면 그 단어에서 하이라이트" 식으로 명시. 패턴은 계속 확장(사용자 교정도 패턴화). director가 개념별 패턴 제안.
+
+
 ## 0.19.0 (2026-06-29)
 
 **sync-qa ASR 모드 — 가정 제거, 실제 음성에서 단어 타임스탬프(ground truth).**

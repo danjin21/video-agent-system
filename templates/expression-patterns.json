@@ -1,0 +1,78 @@
+{
+  "_note": "표현 패턴 라이브러리 — 콘티(continuity)가 '매 문장·핵심어'를 어떤 시각 장치로 표현할지 고르는 카탈로그. 각 패턴의 trigger는 ASR 단어 타임스탬프(프레임)에 묶는다. 프로젝트는 design/expression-patterns.json으로 복사·확장. 사용자 교정마다 패턴 추가.",
+  "version": "seed-2026-06-29",
+  "binding": "모든 trigger = sync_qa --asr 가 준 그 단어의 발화 프레임. 추정 금지. 한 슬라이드에 동시 주인공 1개(나머지는 시간차).",
+  "patterns": [
+    {
+      "id": "ghost_emphasis", "name": "큰 강조 (배경 고스트)",
+      "use": "결정타 단어/숫자를 각인 (예: '10년', '사상 최대', '500조')",
+      "trigger": "그 단어 발화 프레임(ASR)",
+      "visual": "콘텐츠 뒤/옆에 대형 옅은 타이포(opacity ~0.08), 가운데 또는 안전영역 안(잘림 X). 슬라이드당 1회, 진짜 결정타에만.",
+      "component": "Diagrams.tsx GhostWord"
+    },
+    {
+      "id": "node_highlight", "name": "다이어그램 요소 하이라이트",
+      "use": "그 단어를 말할 때 해당 노드/막대/표 행이 채워짐·점등·pop (예: 'AX'→로봇 노드 파랑 채움)",
+      "trigger": "그 단어 발화 프레임(ASR)",
+      "visual": "윤곽→채움 전환 또는 색 점등 + 살짝 pop(≤0.5s)",
+      "component": "Diagrams.tsx Node(activeAt) / 표 행 배경 하이라이트"
+    },
+    {
+      "id": "count_up", "name": "수치 카운트업",
+      "use": "큰 숫자를 빠르게 올려 발화 순간 정착 (예: '501조', '40%')",
+      "trigger": "그 수치 단어 발화 프레임 = 카운트 '정착(end)' 지점",
+      "visual": "0/이전값→목표값 빠른 카운트(≤1.5s), 발화 순간 도달 + 살짝 pop. 성장 원/막대 동반 가능.",
+      "component": "Dynamics.tsx CountUp / GrowCircle"
+    },
+    {
+      "id": "keyword_reveal", "name": "대형 키워드 리빌",
+      "use": "선언적 결정타 (예: 'AX로 가야 합니다', '실행')",
+      "trigger": "그 키워드 발화 프레임",
+      "visual": "콘텐츠 비우고(fade out) 화면 가득 글자 스태거(글자당 ~8f) scale-pop, 배너 pop",
+      "component": "전용 beat — 대형 텍스트 + 글자별 interpolate"
+    },
+    {
+      "id": "draw_on", "name": "곡선/막대 그리기",
+      "use": "추세·관계를 선으로 (예: '두 번째 곡선', '우상향')",
+      "trigger": "구절 시작~핵심어 발화 구간",
+      "visual": "strokeDashoffset draw가 그 구절 동안 진행, 핵심어에서 완성. (단일 요소를 8초 크롤 X — 구절 길이에)",
+      "component": "SVG path draw"
+    },
+    {
+      "id": "metaphor_motion", "name": "은유 진행 모션",
+      "use": "은유를 진짜 도형 운동으로 (저수지=물참, 운동장=공 구름+좁아짐, 벽=넘기)",
+      "trigger": "그 은유 문장 발화 구간(시작~끝)",
+      "visual": "문장 내내 진행형(물 차오름/공 회전하며 굴러 좁아짐). 한 번 변형 후 정지 금지.",
+      "component": "Diagrams.tsx Reservoir / RollingBall / 일러스트"
+    },
+    {
+      "id": "connector_draw", "name": "연결선 (관계)",
+      "use": "두 요소의 관계 (예: '함께', '동시에', 'A에서 B로')",
+      "trigger": "관계어 발화 프레임",
+      "visual": "두 노드/지점 사이 선·화살표 draw + 중앙 라벨('함께' 등) pop",
+      "component": "Diagrams.tsx Connector"
+    },
+    {
+      "id": "marker_point", "name": "지점 마커",
+      "use": "곡선·축의 특정 지점 지목 (예: '정점', '역전', '2035')",
+      "trigger": "그 단어 발화 프레임",
+      "visual": "referent 좌표(교차점·해당 막대)에 정확히 점/라벨 점등. 어긋남 금지(marker_off_referent 안티패턴).",
+      "component": "SVG circle/text at referent"
+    },
+    {
+      "id": "underline_sweep", "name": "밑줄 강조",
+      "use": "메시지 문장의 핵심구 강조 (도형이 마땅찮은 순수 메시지)",
+      "trigger": "그 구절 발화 구간",
+      "visual": "구절 밑에 액센트 밑줄이 좌→우 draw. 과하면 절제(슬라이드당 1~2회).",
+      "component": "absolute underline width interpolate"
+    },
+    {
+      "id": "chip_in", "name": "보조 칩 등장",
+      "use": "부가 개념/근거를 칩으로 (단 실제 발화된 내용만!)",
+      "trigger": "그 단어 발화 프레임",
+      "visual": "둥근 칩이 pop 등장(≤0.5s)",
+      "component": "rounded chip div",
+      "guard": "내레이션에 없는 텍스트를 칩으로 넣지 말 것(2026-06: 발화 안 되는 '점유율 격차' 칩 사고)."
+    }
+  ]
+}

@@ -131,6 +131,30 @@ Realization 후 시각 타이밍이 어색하면:
 - **강조 키워드 = 대형 고스트 타이포**: 결정타 단어/숫자(예: "10년", "사상 최대")는 콘텐츠 뒤/옆에 *크게 옅게*(opacity ~0.08) 한 번 더 — 그 단어 발화 순간 등장. 여백을 채우고 메시지를 각인. 슬라이드당 1회, 진짜 강조에만. (`Diagrams.tsx` GhostWord)
 - **콘티 산출물에 문장(beat)별 action 칸 필수**: 각 beat에 `{beat, text(문장), dur_s, action(어떤 도형이 언제 등장/움직이는가)}`를 *전 문장 빠짐없이* 적는다. action이 비거나 "정지"면 미완성.
 
+## 🎙️ ASR로 단어 타임스탬프 확보 — 추정 금지 (2026-06 사용자 강조, 필수)
+
+**비트 안 어디에 어떤 단어가 있는지 '대본으로 추정'하지 말 것.** 실제 TTS 음성은 대본과 다를 수 있다(akjang-14: 대본상 'AX'가 b3라 봤으나 실제론 b2에서 8.9초에 발화 — 가정이 틀려 타이밍 전부 어긋남). 그래서:
+1. supertone가 비트 WAV를 만들면, **`scripts/sync_qa.py --asr`(faster-whisper)로 각 비트를 받아써 단어별 타임스탬프**를 얻는다. (설치: `pip install faster-whisper`, 최초 1회 모델 다운로드.)
+2. 모든 시각 트리거 프레임은 **그 단어의 ASR 발화 프레임**에 묶는다. 비트 시작/추정 오프셋 금지.
+3. 렌더 후 **`sync-qa --asr` 게이트로 재검증** — 트리거가 단어 발화 프레임과 ±0.2s 안이어야 통과.
+
+## 🎨 매 문장·핵심어 → 표현 패턴 배정 (2026-06 사용자 요구)
+
+**ASR로 들으면서, 매 문장과 그 안의 중요한 단어마다 "어떻게 표현할지"를 명명된 패턴으로 적는다.** 패턴 카탈로그: `templates/expression-patterns.json`(프로젝트는 `design/expression-patterns.json`).
+
+- 패턴 예: `ghost_emphasis`(큰 강조 — 배경에 "10년" 대형 옅게) · `node_highlight`(다이어그램 그 단어 언급 시 노드 채움/점등) · `count_up`(수치) · `keyword_reveal`(대형 키워드) · `draw_on`(곡선 그리기) · `metaphor_motion`(저수지 물참/공 구름) · `connector_draw`(함께·동시에 연결선) · `marker_point`(정점·역전 지점) · `underline_sweep` · `chip_in`(발화된 것만).
+- **각 핵심어에 패턴 + ASR 프레임을 바인딩**해 콘티에 적는다:
+  ```yaml
+  akjang-14:
+    - sentence: "다른 하나는 가장 새로운 근육 AX입니다"
+      keywords:
+        - {word: "AX", t_frame: 268, pattern: node_highlight, target: "AX 노드 채움"}   # ASR 8.9s
+    - sentence: "동시에 키우는 하반기가 되길"
+      keywords:
+        - {word: "동시에", t_frame: 370, pattern: connector_draw, target: "두 노드 함께 링크"}
+  ```
+- **패턴은 계속 늘린다** — 새 표현이 필요하면 카탈로그에 추가(사용자 교정도 패턴으로 축적). 한 슬라이드 동시 주인공 1개.
+
 ## ⭐ 비트 단위 점진 노출 — "한 화면에 한 번에 덤프 금지" (2026-06 사용자 핵심 요구)
 
 **한 장표 안에서도 대사 한 비트(문장/구절)마다 요소가 하나씩 등장/하이라이트된다.** 모든 시각 요소는 그 내용이 *발화되는 그 순간*(그 beat 시작 프레임)에 나타나거나 강조돼야 한다.
@@ -142,11 +166,11 @@ Realization 후 시각 타이밍이 어색하면:
 
 ## 🔁 realization = 음성 나온 뒤 → 리모션 재타이밍 (플로우가 되돌아간다)
 
-비트 싱크는 **실제 SuperTone WAV의 실측 duration**이 있어야 정확히 맞는다. 그래서:
-1. (planning) 요소↔beat 매핑을 논리 단위로 계획.
-2. **SuperTone가 per-beat WAV 생성 → ffprobe 실측 duration**.
-3. (realization) 각 beat 시작 프레임(누적 + 6f 갭) 확정 → 요소 등장/하이라이트 프레임 배치.
-4. **Remotion을 이 타이밍으로 (다시) 렌더.** 음성 전에 추측 프레임으로 만든 리모션은 무효 — 음성 확정 후 재렌더가 정상 경로다.
+비트 싱크는 **실제 SuperTone WAV의 실측값**이 있어야 정확히 맞는다. 그래서:
+1. (planning) 요소↔beat 매핑 + 핵심어별 표현 패턴(위 섹션)을 논리 단위로 계획.
+2. **SuperTone가 per-beat WAV 생성 → ffprobe 실측 duration + `sync_qa.py --asr`로 단어별 타임스탬프**.
+3. (realization) 각 beat 시작 프레임(누적 + 6f 갭) 확정 → 요소/하이라이트 프레임을 **해당 단어의 ASR 발화 프레임**에 배치(추정 금지).
+4. **Remotion을 이 타이밍으로 (다시) 렌더 → `sync-qa --asr` 게이트 통과 확인.** 음성 전에 추측 프레임으로 만든 리모션은 무효.
 
 → 즉 **장표 → 음성 → 콘티 realization → 리모션(재렌더)** 로 되돌아가는 루프가 매 슬라이드에 존재한다. 음성/대사가 바뀌면 그 슬라이드는 다시 이 루프를 돈다.
 
