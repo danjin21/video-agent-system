@@ -1,0 +1,27 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>스토리보드</title>
+<style>
+body{margin:0;font:14px/1.6 -apple-system,"Pretendard","Apple SD Gothic Neo",sans-serif;background:#f4f6fb;color:#151a24}
+.wrap{max-width:1280px;margin:0 auto;padding:32px 24px}h1{font-size:24px;margin:0 0 4px}.sub{color:#5a6372;margin:0 0 24px}
+h2{font-size:18px;border-bottom:1px solid #c5ccd9;padding-bottom:6px;margin:36px 0 14px}
+.beat{display:grid;grid-template-columns:minmax(0,560px) 1fr;gap:22px;padding:14px 0;border-bottom:1px dashed #dde2ec}
+.frame{border:1px solid #c5ccd9;background:#fff;position:relative}.frame svg{display:block;width:100%;height:auto}
+.tc{position:absolute;left:8px;top:8px;font:11px ui-monospace,monospace;background:#151a24;color:#fff;padding:2px 6px}
+.nar{margin:0 0 10px;padding:8px 12px;background:#e6eefc;border-left:3px solid #024ad8;font-size:15px}
+ol{margin:0;padding-left:18px;color:#4a5262}li{margin:2px 0}
+</style></head><body><div class="wrap"><h1 id="t"></h1><p class="sub" id="s"></p><div id="b"></div></div>
+<script>
+const D=/*__DATA__*/null; document.getElementById('t').textContent=D.title; document.getElementById('s').textContent=D.subtitle||'';
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+function el(e){const a=e; switch(a.type){
+ case 'rect': return `<rect x="${a.x}" y="${a.y}" width="${a.w}" height="${a.h}" rx="${a.r??12}" fill="${a.fill||'none'}" stroke="${a.stroke||'none'}" stroke-width="${a.sw||0}" ${a.dash?`stroke-dasharray="${a.dash}"`:''} opacity="${a.op??1}"/>`;
+ case 'circle': return `<circle cx="${a.x}" cy="${a.y}" r="${a.r}" fill="${a.fill||'none'}" stroke="${a.stroke||'none'}" stroke-width="${a.sw||0}" opacity="${a.op??1}"/>`;
+ case 'line': return `<line x1="${a.x1}" y1="${a.y1}" x2="${a.x2}" y2="${a.y2}" stroke="${a.stroke||'#024ad8'}" stroke-width="${a.sw||3}" ${a.dash?`stroke-dasharray="${a.dash}"`:''} opacity="${a.op??1}"/>`;
+ case 'text': return `<text x="${a.x}" y="${a.y}" font-family="Pretendard,sans-serif" font-size="${a.size||28}" font-weight="${a.weight||400}" fill="${a.fill||'#1a1a1a'}" text-anchor="${a.anchor||'start'}" opacity="${a.op??1}">${esc(a.text)}</text>`;
+ case 'image': return `<image href="${a.href}" x="${a.x}" y="${a.y}" width="${a.w}" height="${a.h}" preserveAspectRatio="xMidYMid meet" opacity="${a.op??1}"/>`;
+ case 'group': {const tr=a.camera?`translate(960 540) scale(${a.camera.s}) translate(${-a.camera.fx} ${-a.camera.fy})`:(a.transform||''); return `<g transform="${tr}">${(a.children||[]).map(el).join('')}</g>`;}
+ case 'callout': return `<circle cx="${a.x}" cy="${a.y}" r="24" fill="#1a1a1a"/><text x="${a.x}" y="${a.y+8}" font-size="24" font-weight="700" fill="#fff" text-anchor="middle">${a.n}</text>`;
+ default: return ''}}
+let html=''; for(const s of D.slides){html+=`<h2>SLIDE ${s.no} · ${esc(s.title)} <span style="color:#7b8494;font-size:13px;font-weight:400">${esc(s.meta||'')}</span></h2>`;
+ for(const b of s.beats){html+=`<div class="beat"><div class="frame"><span class="tc">${b.tc||''}</span><svg viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg"><rect width="1920" height="1080" fill="${b.bg||'#fff'}"/>${(b.elements||[]).map(el).join('')}</svg></div><div><p class="nar">${b.nar||''}</p><ol>${(b.steps||[]).map(x=>`<li><code>${x[0]}</code> ${x[1]}</li>`).join('')}</ol></div></div>`}}
+document.getElementById('b').innerHTML=html;
+</script></body></html>

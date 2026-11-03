@@ -1,0 +1,48 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>타이밍 편집기</title>
+<style>
+body{margin:0;font:14px/1.5 -apple-system,"Pretendard","Apple SD Gothic Neo",sans-serif;background:#f4f6fb;color:#151a24}
+.wrap{max-width:1280px;margin:0 auto;padding:24px}
+h1{font-size:20px;margin:0 0 4px}.sub{color:#5a6372;margin:0 0 18px}
+.beat{background:#fff;border:1px solid #d9dfea;margin-bottom:14px;padding:12px 14px}
+.hd{display:flex;justify-content:space-between;font-size:13px;color:#5a6372;margin-bottom:6px}.hd b{color:#151a24}
+canvas{display:block;width:100%;height:120px;border:1px solid #e3e8f1;background:#fafbfe;cursor:crosshair}
+.legend{font-size:12px;color:#7b8494;margin-top:6px}
+.bar{position:sticky;top:0;background:#fff;border-bottom:2px solid #151a24;padding:10px 0;margin-bottom:16px;display:flex;gap:10px;align-items:center}
+button{font:inherit;padding:6px 12px;border:1px solid #151a24;background:#151a24;color:#fff;cursor:pointer}button.alt{background:#fff;color:#151a24}
+textarea{width:100%;height:120px;font:12px ui-monospace,monospace}
+.chg{color:#c8102e;font-weight:700}
+</style></head><body><div class="wrap">
+<h1>타이밍 편집기 — 트리거를 끌어서 발화 위치에 맞추세요</h1>
+<p class="sub">파형(회색) 위에 <span style="color:#296ef9">■ 단어 onset(파랑)</span>, <span style="color:#c8102e">▼ 애니메이션 트리거(빨강)</span>. 빨간 마커를 드래그하면 로컬 프레임이 바뀝니다. 단어 위에 놓으면 그 onset에 스냅.</p>
+<div class="bar"><button id="exp">내보내기 (overrides JSON)</button><button class="alt" id="reset">전부 되돌리기</button><span id="cnt" class="legend"></span></div>
+<div id="list"></div>
+<h3>timing_overrides.json</h3><p class="legend">아래 내용을 프로젝트 <code>final/timing/timing_overrides.json</code>에 저장하면 continuity가 다음 실측 패스에서 적용합니다.</p>
+<textarea id="out" readonly></textarea>
+</div>
+<script>
+const D=/*__DATA__*/null; const fps=D.fps; const over={}; const orig={};
+const list=document.getElementById('list');
+D.beats.forEach((b,bi)=>{
+  const el=document.createElement('div'); el.className='beat';
+  el.innerHTML=`<div class="hd"><span><b>${b.beat}</b> · 로컬 ${b.local_start}~${b.local_start+b.frames}f</span><span>${b.text}</span></div><canvas></canvas><div class="legend">트리거 ${b.triggers.length}개 · 단어 ${b.words.length}개</div>`;
+  list.appendChild(el); const cv=el.querySelector('canvas'); const ctx=cv.getContext('2d');
+  const W=cv.width=cv.clientWidth*2, H=cv.height=240; const px=f=>(f-b.local_start)/Math.max(1,b.frames+15)*W;
+  b.triggers.forEach(t=>{orig[b.slide+':'+t.id]=t.frame});
+  function draw(){ctx.clearRect(0,0,W,H); ctx.fillStyle='#cfd6e3';
+    b.peaks.forEach((p,i)=>{const x=px(b.local_start+i); const h=p*H*0.8; ctx.fillRect(x,H/2-h/2,Math.max(1,W/(b.frames+15)),h)});
+    ctx.fillStyle='#296ef9'; b.words.forEach(w=>{const x=px(b.local_start+w.s*fps); ctx.fillRect(x,H-40,2,40); ctx.font='18px sans-serif'; ctx.fillText(w.w,x+3,H-22)});
+    b.triggers.forEach(t=>{const key=b.slide+':'+t.id; const f=over[key]??t.frame; const x=px(f); ctx.fillStyle=over[key]!=null&&over[key]!==orig[key]?'#c8102e':'#e06a6a';
+      ctx.beginPath();ctx.moveTo(x-8,0);ctx.lineTo(x+8,0);ctx.lineTo(x,14);ctx.fill(); ctx.fillRect(x-1,0,2,H-44); ctx.font='16px sans-serif'; ctx.fillText(`${t.id} ${f}f`,x+6,30+(b.triggers.indexOf(t)%4)*20)});}
+  draw(); let drag=null;
+  cv.addEventListener('mousedown',e=>{const r=cv.getBoundingClientRect(); const x=(e.clientX-r.left)*2; let best=null,bd=14;
+    b.triggers.forEach(t=>{const key=b.slide+':'+t.id; const d=Math.abs(px(over[key]??t.frame)-x); if(d<bd){bd=d;best=t}}); drag=best;});
+  window.addEventListener('mousemove',e=>{if(!drag)return; const r=cv.getBoundingClientRect(); const x=(e.clientX-r.left)*2; let f=Math.round(b.local_start+x/W*(b.frames+15));
+    let snap=null; b.words.forEach(w=>{const wf=Math.round(b.local_start+w.s*fps); if(Math.abs(wf-f)<=3) snap=wf}); if(snap!=null) f=snap;
+    over[b.slide+':'+drag.id]=Math.max(b.local_start-15,Math.min(b.local_start+b.frames+15,f)); draw(); upd();});
+  window.addEventListener('mouseup',()=>drag=null);
+});
+function upd(){const o={}; Object.keys(over).forEach(k=>{if(over[k]!==orig[k]) o[k]=over[k]}); document.getElementById('out').value=JSON.stringify(o,null,1); document.getElementById('cnt').textContent=Object.keys(o).length+'개 변경';}
+document.getElementById('exp').onclick=()=>{upd(); const ta=document.getElementById('out'); ta.select(); document.execCommand('copy'); alert('클립보드에 복사됨 — final/timing/timing_overrides.json 로 저장');};
+document.getElementById('reset').onclick=()=>{for(const k in over) delete over[k]; location.reload();};
+upd();
+</script></body></html>

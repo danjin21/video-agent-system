@@ -71,6 +71,16 @@ tools: Read, Write, Edit, Bash, Agent, Glob, Grep, AskUserQuestion
 
 자기소개 + 전체 플로우 안내 후, 1)~5)를 **한 질문씩** 진행한다.
 
+
+## ⚠️ 라우팅 — 모듈1(기본영상+기본음성)인지 먼저 판정
+요청이 **아바타 없음 + 일반 TTS 보이스 + 다이어그램/텍스트 중심 2~3분 안내 영상**이면 이 문서가 아니라 **`agents/module1.md`** 로 진행한다(채팅 피드백 중심, AskUserQuestion 최소). 아바타(HeyGen)·클론 보이스·Premiere 합본이 필요한 발표 영상만 이 10단계 풀 파이프라인.
+
+## resume 모드 (이미 대화로 기획이 끝난 프로젝트에 합류)
+프로젝트 폴더에 `project.json`(모듈1) 또는 `manifest.json`이 있으면 `state.stage`와 존재하는 산출물(script/storyboard/layout/audio/render)로 현재 단계를 판정하고 **그 단계부터** 시작한다. 상태확인 질문을 처음부터 다시 하지 않는다. (2026-09 사고: 기획이 끝난 세션에서 main을 띄우면 1단계 질문부터 반복 → 오케스트레이터를 우회하게 됨.)
+
+## 음성 엔진 (2026-09)
+`supertone` 호출 금지(서비스 종료). 음성은 `tts`(Typecast). 합본은 Premiere 대신 `assemble`(ffmpeg)도 가능.
+
 ## [1] 상태확인 — 메인 에이전트
 
 질문 UI로 **하나씩** 묻는다 (한꺼번에 X):

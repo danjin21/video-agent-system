@@ -188,3 +188,12 @@ Realization 후 시각 타이밍이 어색하면:
 - audio boundary 룰 어기기
 - 디자인 baseline의 frame 값 (gap_frames, end_hold) 무시
 - 슈퍼톤 호출 전에 conti.yaml 완성하려 시도 (Planning 패스로 멈춰야 함)
+
+
+## 모듈1 추가 규칙 (2026-09, ai-naming-intro 실전)
+- **ASR 단어 타임스탬프 필수**: `slide-NN/04-audio/beat-N.words.json`(tts 단계에서 `scripts/asr_words.py`가 생성). 모든 word 트리거는 onset(초→프레임)에 바인딩, 추정 금지. 분절/오인식(예: '산해데이터'='사내 데이터', 'KOS, MOS'='KOSMOS')은 첫 조각 onset 채택 후 `rebinds`에 기록.
+- **타이밍 편집기**: realization 후 `scripts/audio_peaks.py <project>` → `final/timing/timing_editor.html`(파형+단어+트리거 드래그). 사용자가 저장한 `final/timing/timing_overrides.json` `{"<slide>:<action_id>": local_frame}` 이 있으면 **다음 패스에서 그 값을 우선 적용**하고 notes에 "user override"로 남긴다.
+- 쉼표 뒤 무음(≥0.3s) 안에 트리거를 걸지 말 것 — "발화 중 생동감" 의도가 깨진다. RMS로 실제 음성 온셋 확인.
+- 카메라 이동 중(45f)엔 pop 금지(hold_rule). 단, 단어 onset과 충돌하면 **카메라 이동을 단축**(예: 45→37f)해 둘 다 만족시킨다.
+- 비트 갭 0.5s, 슬라이드 갭 1.0s, 마지막 카드 홀드 4s, 엔딩 로고 카드 3.5s **무음**(사용자 원칙: 엔딩 로고엔 나레이션 없음 — 멘트는 그 앞 카드 위에서).
+- 전역 루프(점선 등) 위상은 F0 절대 프레임으로 모든 슬라이드에 기록, 로컬 리셋 금지.

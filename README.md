@@ -1,4 +1,5 @@
 # Video Agent System
+> **v0.23.0 — 모듈1 "기본영상 + 기본음성"**: `agents/module1.md`. 아바타·클론 보이스·Premiere 없이 2~3분 사내 안내 영상. 음성은 `tts.md`(Typecast — Supertone API는 2026-08-31 종료), 합본은 `assemble.md`(ffmpeg). 스토리보드 HTML·타이밍 편집기 포함.
 
 경영전략회의 보고서를 영상으로 만드는 사이클 인지 에이전트 시스템.
 

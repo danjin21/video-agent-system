@@ -1,3 +1,13 @@
+## 0.23.0 — 모듈1 "기본영상 + 기본음성" (2026-11-03)
+- **신규 `agents/module1.md`**: 아바타·클론 보이스·Premiere 없이 다이어그램 장표 + TTS 기본 보이스 + ffmpeg 합본으로 2~3분 안내 영상을 만드는 오케스트레이터. 채팅 피드백 사이클 중심, resume 모드.
+- **신규 `agents/tts.md`** (+`scripts/tts_typecast.py`, `scripts/asr_words.py`): Supertone API 종료(2026-08-31)에 따른 Typecast 정본. ASCII 경계 발음 치환, 끝음 QA 시드 재생성, ASR 단어 타임스탬프.
+- **신규 `agents/assemble.md`** (+`scripts/build_master.sh`, `build_all.sh`, `rebuild_audio_subs.py`, `burn_subs.py`): 비디오 전용 concat + 원본 WAV 나레이션 + BGM 사이드체인 덕킹 + PIL 자막. AAC priming 누적 지연·`-shortest` 꼬리 절단 사고 구조적 회피.
+- **타이밍 편집기** `templates/module1/timing_editor.html` + `scripts/audio_peaks.py`: 파형·단어 onset·트리거 드래그 → `timing_overrides.json` → continuity 적용.
+- **스토리보드 HTML** `templates/module1/storyboard.html` + `scripts/storyboard_html.py`: 실좌표 SVG 프레임.
+- `templates/module1/project.json` 프로젝트 설정(보이스·발음·BGM·자막·타이밍).
+- `supertone.md` 폐기 표시, `main.md` 모듈1 라우팅 + resume 모드, `continuity/storyboarder/layouter/remotion.md`에 모듈1 실전 규칙 추가.
+- 근거 프로젝트: `agent_design_new/ai-naming-intro` (2:16.8, 7슬라이드, 피드백 8사이클).
+
 # CHANGELOG
 
 ## 0.22.0 (2026-06-29)

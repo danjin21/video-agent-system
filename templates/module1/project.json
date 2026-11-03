@@ -1,0 +1,24 @@
+{
+  "module": "module1",
+  "title": "<영상 제목>",
+  "state": {"stage": "plan", "version": 1},
+  "voice": {
+    "engine": "typecast", "name": "Siyeon", "voice_id": "tc_6568164fe05ddffee8b0e271",
+    "model": "ssfm-v30", "language": "kor",
+    "prompt": {"emotion_type": "preset", "emotion_preset": "toneup", "emotion_intensity": 1.0},
+    "tempo": 0.9,
+    "_note": "사내 안내 톤 기준점. 오디션 후 교체. tempo 1.0은 빠르다는 피드백, toneup 1.5는 홍보 톤."
+  },
+  "pronunciation": {"ATIS": "아티스", "COMPAS": "컴파스", "KOSMOS": "코스모스", "MCP": "엠씨피", "API": "에이피아이", "AX": "에이엑스", "PI": "피아이", "GPU": "지피유", "LLM": "엘엘엠"},
+  "bgm": {
+    "path": "~/Documents/(최종)_전략회의_2026/03_배경음/Sunshine_Tech_Groove.wav",
+    "volume": 0.24, "fade_out_s": 3.8,
+    "duck": {"threshold": 0.015, "ratio": 8, "attack_ms": 30, "release_ms": 1200}
+  },
+  "subtitles": {
+    "enabled": true, "max_chars": 44, "wrap_chars": 36,
+    "style": {"font": "~/Library/Fonts/Pretendard-Medium.otf", "size": 46, "stroke": 1, "shadow": [1, 2, 120], "margin_bottom": 48, "line_height": 60},
+    "_note": "스타일 8(Medium+외곽선 1px). 흰 배경 많으면 stroke 2 권장. 줄나눔은 final/subs/manual_map.json 으로 수동 지정('||' 컷, ' / ' 줄바꿈)."
+  },
+  "timing": {"beat_gap_f": 15, "slide_gap_f": 30, "cover_hold_f": 45, "card_hold_f": 120, "ending_f": 105}
+}

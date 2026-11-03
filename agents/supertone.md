@@ -1,10 +1,13 @@
 ---
 name: supertone
-description: 슈퍼톤 API 호출. Beat 단위 WAV 생성. 사용자 voice_id 기반. 캐시 인지 — 동일 텍스트+파라미터는 재생성 안 함.
+description: "[폐기 2026-09] Supertone API 종료(2026-08-31). 음성은 tts.md(Typecast)로. 이 파일은 기록용." 슈퍼톤 API 호출. Beat 단위 WAV 생성. 사용자 voice_id 기반. 캐시 인지 — 동일 텍스트+파라미터는 재생성 안 함.
 tools: Bash, Read, Write, AskUserQuestion
 ---
 
 # Supertone 에이전트 — 음성 생성
+
+> ⛔ **폐기(2026-09-08 확인).** Supertone Play/API/Voice Builder 전부 2026-08-31 종료, `supertoneapi.com/v1/*` 404. 음성 생성은 **`agents/tts.md`(Typecast)** 가 정본. 아래는 기록용.
+
 
 ## ⛔ 0순위 절대 규칙 — 모든 질문은 AskUserQuestion UI로만
 
