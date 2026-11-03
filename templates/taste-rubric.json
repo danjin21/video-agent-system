@@ -1,6 +1,6 @@
 {
   "_note": "design-critic 취향 루브릭 시드. 프로젝트는 design/taste-rubric.json으로 복사·학습. 사용자 교정마다 항목 추가/가중치 조정.",
-  "version": "seed-2026-06-26",
+  "version": "seed-2026-07-01",
   "anti_patterns": [
     {"id": "clutter_label", "severity": "high", "smell": "화면을 설명하는 회색 중간 안내문/메타 라벨", "example": "'오늘 함께 볼 곡선, 셋'", "fix": "제거 — 요소 등장 자체로 말한다"},
     {"id": "marker_off_referent", "severity": "high", "smell": "주석·마커가 가리키는 대상과 어긋남", "example": "'역전' 점이 곡선 교차점이 아님 / 태그 overhang", "fix": "referent 좌표에 정확히(교차점·해당 막대)"},
@@ -19,6 +19,12 @@
     {"id": "metaphor_not_drawn", "severity": "mid", "smell": "은유(저수지·운동장·근육·곡선)가 글자로만, 그림이 없음", "fix": "픽토그램 도형 모션으로(저수지=분지+물방울+수위, 운동장=구르는 공). Diagrams.tsx Reservoir/RollingBall"},
     {"id": "wrong_icon", "severity": "mid", "smell": "아이콘이 개념과 안 맞거나 추상적(예: AX=반도체 칩) — 1초 안에 안 읽힘", "fix": "청중이 즉시 읽는 아이콘: 수익률=%, AI/AX=로봇, 성장=상승화살표, 자금=물방울"},
     {"id": "emphasis_no_ghost", "severity": "low", "smell": "결정타 숫자/단어가 작게 흘러 각인이 약함", "fix": "콘텐츠 뒤·옆 대형 고스트 타이포(opacity ~0.08, 발화 순간 등장, 슬라이드당 1회). Diagrams.tsx GhostWord"},
-    {"id": "slow_term", "severity": "mid", "smell": "비트 사이 텀이 늘어져 지루함", "fix": "발화 비트 간 불필요한 공백 제거, 모션은 ≤1.5초 후 다음 비트로"}
+    {"id": "slow_term", "severity": "mid", "smell": "비트 사이 텀이 늘어져 지루함", "fix": "발화 비트 간 불필요한 공백 제거, 모션은 ≤1.5초 후 다음 비트로"},
+    {"id": "number_dump", "severity": "high", "smell": "전체적으로 숫자(KPI 카드·stat callout)만 나열되고 그림/다이어그램이 적어 메마름(2026-07: '전체적으로 숫자만, 다이어그램이 적다')", "fix": "데이터 슬라이드도 노드/플로우/은유 도형·아이콘을 함께. 숫자는 다이어그램 위에서 의미화 모션(카운트업·성장)으로. 수치 카드 4분할로 때우지 말 것"},
+    {"id": "static_diagram", "severity": "mid", "smell": "다이어그램이 있어도 정지해 있어 역동성이 부족(2026-07: '다이어그램이 많이 나오고 역동적으로 움직여야')", "fix": "도형을 빠른 pop(≤0.7s) 스태거로 연달아 등장 + 의미화 모션(draw/grow/pulse)을 발화에 물려 살아 움직이게. 정지 다이어그램 나열 금지"},
+    {"id": "avatar_side_panel", "severity": "high", "smell": "아바타 발화 중 화면을 줄여 양옆에 단색 블루 패널/레터박스(2026-07: '아바타 말할 땐 양옆 파란 영역 없어야, 무조건 풀스크린')", "fix": "아바타 발화는 풀스크린(cover). 아바타를 축소해 사이드 패널 만들지 말 것"},
+    {"id": "avatar_on_interstitial", "severity": "high", "smell": "인사·간지에 인물(아바타) 노출(2026-07 v2: '간지에 인물 이상하다', '그냥 처음이랑 끝만 인물')", "fix": "아바타는 처음(표지)·끝(클로징)만. 인사·간지는 무인물 키워드/장표 + 보이스오버"},
+    {"id": "avatar_black_cut", "severity": "high", "smell": "인물이 말하다가 컷/검은화면으로 끊김(2026-07 v2: '말하다가 끊기고 검은화면으로 끊기고 이상')", "fix": "한 인물 씬은 끊김 없이 연속. 아바타 클립 사이 갭/검은프레임 금지, 이상적으론 연속 단일 클립"},
+    {"id": "avatar_text_overlay_default_off", "severity": "mid", "smell": "인물 발화 중 텍스트 오버레이(강조어)가 떠 산만(2026-07 v2: '인물 이야기할 때 텍스트 우선 없애')", "fix": "인물 발화 중 텍스트 오버레이 기본 off. 아바타 영상만(추후 세부 조정 시에만 추가)"}
   ]
 }

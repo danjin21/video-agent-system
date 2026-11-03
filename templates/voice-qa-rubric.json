@@ -1,6 +1,6 @@
 {
-  "_note": "voice_qa.py 끝음 검수 임계값. 프로젝트는 audio/voice-qa-rubric.json으로 복사·튜닝. 실제 클립의 SVG 곡선과 대조해 임계값 보정.",
-  "version": "seed-2026-06-29",
+  "_note": "voice_qa.py / voice-qa 에이전트 음성 검수 임계값. 프로젝트는 audio/voice-qa-rubric.json으로 복사·튜닝. 실제 클립의 SVG 곡선과 대조해 임계값 보정. 검수는 반드시 BGM 없는 원본 WAV로.",
+  "version": "seed-2026-07-01",
 
   "sr": 16000,
   "win_ms": 25,
@@ -24,6 +24,15 @@
   "limp_corpus_frac": 0.55,
   "limp_end_ms": 150,
 
+  "tail_artifact_hf_ratio": 0.28,
+  "tail_artifact_burst_db": 8,
+  "tail_artifact_scan_all_pauses": true,
+  "glitch_f0_jump_semitones": 4.0,
+  "glitch_spectral_discont": 0.40,
+  "falsetto_f0_above_median_semitones": 5.0,
+  "falsetto_hf_weak_ratio": 0.50,
+  "ending_syllable_ms": 220,
+
   "_tuning": {
     "rising_semitones": "끝(end 300ms) 중앙 F0가 직전(ref) 대비 이 반음 이상 높으면 rising 후보. 한국어 평서문은 보통 하강 → 1.0~1.5 권장. 오탐 많으면 ↑.",
     "rising_max_semitones": "이보다 큰 점프는 자기상관 F0 옥타브 오류로 보고 rising에서 제외(가짜 양성 차단).",
@@ -31,6 +40,13 @@
     "limp_floor_ratio": "끝 150ms 평균 RMS가 peak의 이 비율 미만이면 limp(절대 바닥 안전망). 정상 종결도 약해지므로 낮게(0.05~0.08).",
     "limp_rel_ratio": "끝 150ms RMS / 발화부 median RMS 가 이 미만이면 limp.",
     "limp_corpus_frac": "끝RMS/peak 가 화자 전체(코퍼스) median 의 이 배 미만이면 limp — '이 화자 평소 종결보다 유난히 약함'. 핵심 상대 지표. 0.45~0.6에서 튜닝.",
-    "voicing_min": "자기상관 정규화 피크 voicing 문턱. 잡음 많으면 ↑, 무성 구간 F0 오검출되면 ↑."
+    "voicing_min": "자기상관 정규화 피크 voicing 문턱. 잡음 많으면 ↑, 무성 구간 F0 오검출되면 ↑.",
+    "tail_artifact_hf_ratio": "trailing_artifact(2026-07 '뿌ㅂ우'): 마지막 활성 단어 *이후* 꼬리 구간의 고주파 에너지 비율이 이 값↑이면 숨소리 팝/잡음 꼬리. 정상 종결 무음과 구분.",
+    "tail_artifact_burst_db": "꼬리 구간에 직전 대비 이 dB↑ 에너지 버스트(팝/클릭)면 artifact.",
+    "glitch_f0_jump_semitones": "voice_glitch(2026-07 '목소리 튐'): 비트 *내부* 인접 voiced 프레임 F0 점프가 이 반음↑ + 스펙트럴 불연속이면 음색 튐. 종결뿐 아니라 문장 중간도 검사. 옥타브 오류와 구분(연속성).",
+    "glitch_spectral_discont": "스펙트럴 중심/롤오프 1차차분 정규값이 이 값↑이면 음색 불연속(튐).",
+    "falsetto_f0_above_median_semitones": "falsetto_ending(2026-07 '다'가 내시처럼): 종결 어절 F0가 화자 음역 median 대비 이 반음↑ + 배음 약화면 가성. rising과 구분 — rising은 피치만, falsetto는 음색까지 가늘어짐.",
+    "falsetto_hf_weak_ratio": "종결 어절의 고주파/배음 에너지가 발화부 대비 이 비율 미만이면 가성 의심(가늘고 숨 섞임).",
+    "ending_syllable_ms": "한국어 '~습니다/~다' 종결 어절을 떼어 검사하는 구간 길이. ASR 가능하면 단어 경계로 정밀화."
   }
 }

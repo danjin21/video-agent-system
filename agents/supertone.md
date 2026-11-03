@@ -144,6 +144,9 @@ curl -X POST "https://supertoneapi.com/v1/text-to-speech/$SUPERTONE_VOICE_ID" \
 
 생성된 음성의 **문장 끝**이 가끔 이상하다: 끝음 피치가 올라가거나(의문문처럼, `rising`), 맥아리 없이 꺼진다(`limp`). 25개 WAV를 사람이 일일이 듣는 건 비현실적 → **객관 검수 후 이상한 것만 자동 재생성**한다.
 
+### 🔴 2026-07 확장 — 검수 항목 추가 + voice-qa 게이트 분리
+사용자가 합본을 듣고 추가 결함을 지적했다(BGM에 묻혀 사전에 못 잡힘): **종결 뒤 "뿌ㅂ우~" 잡음/숨소리 팝(`trailing_artifact`), 문장 중간 목소리 튐(`voice_glitch`), "~다" 종결이 가성/내시처럼 가늘게 뜸(`falsetto_ending`)**. rising/limp만이 아니라 이 세 가지도 `voice_qa.py`/rubric에 포함해 잡는다(특히 한국어 "~습니다/~다" 종결 어절을 따로 떼어 검사). 이제 **음성 검수는 독립 `voice-qa` 에이전트**가 게이트로 돌린다 — supertone는 voice-qa가 flag한 beat를 **재생성**하는 역할(아래 자동 재생성 루프). **검수는 반드시 BGM 없는 원본 WAV로**(BGM이 아티팩트를 가린다 — 합본으로 검수 금지).
+
 **도구: `scripts/voice_qa.py`** (무설치 — ffmpeg + Python 표준 라이브러리). 자기상관 F0 + RMS로 끝 구간을 분석해 `rising`/`limp` flag + **문장별 곡선 SVG**(사람이 곡률 확인용)를 낸다. 임계값은 `templates/voice-qa-rubric.json`(프로젝트는 `audio/voice-qa-rubric.json`로 복사·튜닝).
 
 ```bash
@@ -193,5 +196,6 @@ python3 scripts/voice_qa.py <project>/04-audio/beats --rubric <project>/audio/vo
 - voice_id 사용자 보여주기 (보안)
 - duration 추정값 사용 (반드시 ffprobe 실측)
 - `speed_per_word`/`pause_after_sentence` 같은 가짜 파라미터 API body에 넣기
-- **끝음 QA 미통과(rising/limp) 음성을 그대로 다음 단계(avatar/remotion)로 넘기기** — 재생성 2회 또는 escalate 거친 뒤에만 통과
+- **끝음 QA 미통과(rising/limp/trailing_artifact/voice_glitch/falsetto_ending) 음성을 그대로 다음 단계(avatar/remotion)로 넘기기** — 재생성 2회 또는 escalate 거친 뒤에만 통과
 - 원본 표기/자막을 끝음 보정한답시고 건드리기 (보정은 *발화 텍스트*에만)
+- **BGM 깔린 합본으로 음성 품질 판단**(2026-07) — 검수는 BGM 없는 원본 WAV로만.
