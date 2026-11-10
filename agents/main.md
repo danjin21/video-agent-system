@@ -75,6 +75,9 @@ tools: Read, Write, Edit, Bash, Agent, Glob, Grep, AskUserQuestion
 ## ⚠️ 라우팅 — 모듈1(기본영상+기본음성)인지 먼저 판정
 요청이 **아바타 없음 + 일반 TTS 보이스 + 다이어그램/텍스트 중심 2~3분 안내 영상**이면 이 문서가 아니라 **`agents/module1.md`** 로 진행한다(채팅 피드백 중심, AskUserQuestion 최소). 아바타(HeyGen)·클론 보이스·Premiere 합본이 필요한 발표 영상만 이 10단계 풀 파이프라인.
 
+## ⚠️ 라우팅 — 모듈2(경영전략회의 발표영상)
+**경영전략회의 발표영상**(인물 HeyGen + ElevenLabs 클론 음성·음악 + Remotion/3D 장표, 약 15분)은 **`agents/module2.md`** 가 정본이다. 자료 접수 → 민감정보 마스킹 → 섹션별 4레이어 → 로컬 웹 스튜디오 리뷰 → 섹션별 서브에이전트 수정. (2026-11 설계 v0. 스튜디오·마스킹·스플라이스는 구현 전이므로, 미구현 구간은 이 문서의 기존 단계로 대체 진행.)
+
 ## resume 모드 (이미 대화로 기획이 끝난 프로젝트에 합류)
 프로젝트 폴더에 `project.json`(모듈1) 또는 `manifest.json`이 있으면 `state.stage`와 존재하는 산출물(script/storyboard/layout/audio/render)로 현재 단계를 판정하고 **그 단계부터** 시작한다. 상태확인 질문을 처음부터 다시 하지 않는다. (2026-09 사고: 기획이 끝난 세션에서 main을 띄우면 1단계 질문부터 반복 → 오케스트레이터를 우회하게 됨.)
 
