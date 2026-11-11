@@ -1,0 +1,24 @@
+{
+  "module": "module2",
+  "title": "",
+  "fps": 30,
+  "canvas": {"w": 1920, "h": 1080},
+  "target_minutes": 15,
+  "state": {"stage": "intake"},
+  "sections": [],
+  "voice": {
+    "engine": "elevenlabs",
+    "voice_id": "",
+    "model": "eleven_multilingual_v2",
+    "settings": {"stability": 0.5, "similarity_boost": 0.8, "style": 0.0, "speed": 1.0}
+  },
+  "avatar": {"engine": "heygen", "avatar_id": "", "default_engine": "avatar_v", "sections": "first_last"},
+  "bgm": {"source": "user_or_elevenlabs_music", "tracks": [], "volume": 0.24, "duck": true},
+  "redaction": {
+    "terms": {"company": [], "region": [], "person": [], "product": [], "project": []},
+    "allow": [],
+    "masks": {"money": "99999원", "money_usd": "99999달러"}
+  },
+  "studio": {"port": 8765},
+  "user_video_rules": []
+}

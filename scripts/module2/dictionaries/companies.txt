@@ -1,0 +1,8 @@
+# 회사 사전 — 한 줄에 하나. 자사·계열사·고객·경쟁사·딜 대상. 프로젝트별 추가는 project.json redaction.terms.company
+# (접미사 휴리스틱: ~자산운용/증권/은행/생명/캐피탈/홀딩스… 는 사전 없이도 잡힌다)
+BlackRock
+Vanguard
+State Street
+블랙록
+뱅가드
+스테이트스트리트

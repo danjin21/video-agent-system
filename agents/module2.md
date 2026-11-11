@@ -1,6 +1,6 @@
 ---
 name: module2
-description: 모듈2 — "경영전략회의 발표영상" 오케스트레이터. 인물(HeyGen 아바타) + 클론 음성·음악(ElevenLabs) + Remotion 장표(가능하면 3D)로 약 15분 발표영상을 만든다. 자료(PPT/대본) 접수 → 민감정보 마스킹 → 섹션별 4레이어(대본·스토리보드·장표·영상화 타임라인) → 로컬 웹 스튜디오에서 섹션 단위 코멘트·직접 편집 → 섹션별 서브에이전트 수정 루프. 상태 - 설계(v0, 2026-11-11), 스튜디오·마스킹·스플라이스 스크립트는 로컬에서 먼저 구현 예정.
+description: 모듈2 — "경영전략회의 발표영상" 오케스트레이터. 인물(HeyGen 아바타) + 클론 음성·음악(ElevenLabs) + Remotion 장표(가능하면 3D)로 약 15분 발표영상을 만든다. 자료(PPT/대본) 접수 → 민감정보 마스킹 → 섹션별 4레이어(대본·스토리보드·장표·영상화 타임라인) → 로컬 웹 스튜디오에서 섹션 단위 코멘트·직접 편집 → 섹션별 서브에이전트 수정 루프. 상태 - 마스킹·스튜디오·수정 대기열·데이터 구동 렌더·3D 기본 키트·합본 구현(v1.1, 2026-11-11), 음성 합성(ElevenLabs·스플라이스)·HeyGen 생성 연결은 구현 전.
 tools: Read, Write, Edit, Bash, Agent, Glob, Grep, AskUserQuestion
 ---
 
@@ -12,6 +12,22 @@ tools: Read, Write, Edit, Bash, Agent, Glob, Grep, AskUserQuestion
 > 이 문서는 2026-11-11 사용자가 구두로 정의한 모듈2 요구사항을 정리한 **설계 정본**이다. 구현 상태는 §11 표를 따른다.
 
 ---
+
+## 빠른 시작 (구현됨)
+
+> 도구 중립 절차서: `skills/module2-strategy-video/SKILL.md` (Claude Code·Codex 공용). 이 문서는 설계 정본이다.
+
+```bash
+S=<plugin>/scripts/module2
+python3 $S/module2_init.py <project> --script 대본.md      # 또는 --pptx 자료.pptx / --demo
+python3 $S/redact.py scan <project>                        # 민감정보 추출 → 매핑표
+python3 $S/studio_server.py <project>                      # http://127.0.0.1:8765 (스튜디오)
+python3 $S/studio_queue.py <project> list                  # 사용자가 보낸 수정 요청
+$S/setup_remotion.sh                                       # (1회) 3D 의존성 설치
+python3 $S/render_section.py <project> <sNN|all> [--draft] [--still N]   # 섹션 렌더
+python3 $S/assemble.py <project> [--draft]                 # 섹션 이어 붙이기 + 나레이션 + BGM
+```
+스크립트는 표준 라이브러리만 쓴다 (Python 3.9+, pptx/docx도 zip+XML로 직접 읽음). 서버는 실행 중인 프로젝트 하나만 다룬다.
 
 ## 0. 한 장 요약
 
@@ -105,6 +121,20 @@ tools: Read, Write, Edit, Bash, Agent, Glob, Grep, AskUserQuestion
 3. **실단어만 따로** 같은 보이스로 생성한다.
 4. 로컬에서 마스킹 단어 구간을 잘라내고 실단어 조각을 **붙인다(합성)** → §7-3 스플라이스 절차.
 
+### 3-4-1. 구현 — `scripts/module2/redact.py`
+| 명령 | 하는 일 |
+|---|---|
+| `scan <project>` | 섹션 `beats.json`(없으면 `script_full.md`)에서 후보 추출 → `redaction_map.json`. 사용자가 고친 대체어·허용값은 보존 |
+| `apply <project>` | `script_masked.md`, 섹션별 `beats_masked.json`(비트마다 `text_masked`, `sensitive`, `splice`) 생성. 민감 비트가 `mode: avatar`면 `slide`로 강제 전환하고 `mode_forced`에 이유 기록 |
+| `add / allow` | 놓친 토큰 추가, 노출 허용 토글 |
+| `gate <project> [file\|-] [--fragments]` | 실값이 남아 있으면 exit 1. `--fragments`는 `splice_plan.json`의 실단어 어절만 통과 |
+| `splice-plan <project>` | 발화되는 민감 어절 목록 → `splice_plan.json` (음성 합성 단계 입력) |
+| `report <project>` | 범주별 표 |
+
+탐지: 금액(숫자+조/억/만+원/달러, 한글 수사), 퍼센트·%p·bp·배수, 연도(기본 노출 허용), 사전(`dictionaries/regions.txt`, `companies.txt`), 회사 접미사(~자산운용/증권/은행/홀딩스…, 영문 Inc/Corp…), 성씨+직함 인명(앞뒤 순서 모두), `project.json`의 `redaction.terms`. **자동 탐지는 출발점이다.** 오케스트레이터는 대본을 직접 읽고 놓친 것(고객사 약칭, 프로젝트 코드명 등)을 `add`로 보탠 뒤 사용자에게 마스킹 화면에서 확정받는다.
+조사 교정: 대체어 받침에 맞춰 은/는·이/가·을/를·과/와·으로/로 등을 바꾼다("한빛자산운용이"→"A사가", "베트남과"→"임시지역1과"). `splice`에는 실값 기준 어절이 남는다.
+매핑표를 저장할 때 프로젝트 `.gitignore`에 `redaction_map.json`, `splice_plan.json`, `00-intake/`를 자동 추가한다.
+
 ### 3-5. 마스킹 게이트 (자동 검사)
 - 외부로 나가는 모든 텍스트·오디오 요청 직전에 `redaction_map.json`의 실값 문자열이 페이로드에 있는지 검사하고, 있으면 **차단**한다. (실단어 조각 생성 요청은 §7-3의 허용 목록으로만 통과.)
 - 아바타 비트의 대본에 민감 토큰이 하나라도 있으면 그 비트를 인물에서 장표로 강제 전환하고 사용자에게 알린다.
@@ -152,7 +182,7 @@ tools: Read, Write, Edit, Bash, Agent, Glob, Grep, AskUserQuestion
 
 ## 5. [3] 로컬 웹 스튜디오 — 섹션 단위 리뷰·편집
 
-> **상태: 미구현. 로컬에서 먼저 만든다.** 플러그인 템플릿 `templates/module2/studio/`로 구현하고 프로젝트마다 복사해 `localhost`에서 띄운다. 실데이터를 다루므로 외부 호스팅 금지.
+> **상태: 구현됨 (v1).** 서버 `scripts/module2/studio_server.py`(표준 라이브러리, 127.0.0.1 전용), 화면 `templates/module2/studio/`(index.html·app.js·style.css·anim.js, 빌드 없음). 프로젝트에 복사하지 않고 플러그인에서 바로 서빙하고, 데이터만 프로젝트에서 읽고 쓴다. 실데이터를 다루므로 외부 호스팅 금지.
 
 ### 5-1. 화면 구성
 | 화면 | 기능 |
@@ -165,7 +195,11 @@ tools: Read, Write, Edit, Bash, Agent, Glob, Grep, AskUserQuestion
 | 계정 연결 | HeyGen·ElevenLabs 연결과 가이드 (§6) |
 | 전체 미리보기 | 섹션 이어보기, 렌더 상태 |
 
-미리보기는 **`@remotion/player`로 실제 컴포지션을 브라우저에서 재생**한다. 편집값을 inputProps로 넘기므로 렌더 없이 즉시 확인된다.
+미리보기는 **`anim.js`(렌더 의미론 정본)**로 그린다. 요소 병합(`mergeSection`), 프레임별 상태(`stateAt`: 투명도·이동·크기·닦아내기·강조), 표시 텍스트(`displayText`·`richSegments`: 타자기·카운트업·[[강조]])가 순수 함수로 들어 있어, 데이터 구동 Remotion 컴포넌트가 **같은 파일을 import**하면 미리보기와 렌더가 일치한다. (설계 v0의 `@remotion/player` 임베드는 빌드 체인이 필요해 보류. 3D·차트·실제 아바타는 렌더 단계에서 완성.)
+- 비트 음성(`audio/beat-N.wav`)이 있으면 미리보기 재생 때 같이 나오고, `beat-N.words.json`(ASR)이 있으면 타임라인에 단어 시작점이 찍혀 막대가 거기에 붙는다.
+- 편집 모드에서는 아직 등장 전인 요소도 흐리게 보여서 선택할 수 있다. 가운데선·다른 요소 가장자리에 자석처럼 붙고(Alt로 해제), ⌘Z로 되돌린다.
+- 끝까지 유지되는 요소의 타임라인 막대를 옮기면 등장만 바뀌고 퇴장은 끝에 고정된다.
+- 섹션 잠금, 이전 버전 되돌리기(`history/vN`), 4초마다 상태 폴링(에이전트가 고치면 자동 새로고침).
 
 ### 5-2. 코멘트 (텍스트 지시)
 코멘트는 요소를 클릭해 붙이고, 유형을 고른다.
@@ -198,7 +232,9 @@ tools: Read, Write, Edit, Bash, Agent, Glob, Grep, AskUserQuestion
 ```
 - 단위: 좌표는 1920×1080 px, 시간은 **프레임(30fps)**. UI에는 초로 표시.
 - 타이밍 바는 비트 경계·ASR 단어 onset에 **스냅**한다 (모듈1 타이밍 편집기 로직 재사용).
-- 폰트 목록은 `global_assets/fonts/`에 실제 파일이 있는 것만 보여준다. 새 폰트를 고르면 파일 배치까지 확인.
+- 폰트 목록은 실제 파일이 있는 것만 보여준다. 검색 순서: 프로젝트 `global_assets/fonts/` → `~/Library/Fonts` → Remotion `public/fonts` → `/Library/Fonts`. 렌더 단계에서 프로젝트 폰트 폴더에 없는 폰트는 복사해 둔다.
+- 요소 추가(텍스트·이미지·영상·도형)는 `edits.json`에 `_new: true`, 삭제는 `_deleted: true`로 남는다. 이미지·영상은 섹션 `attachments/`에 업로드된다.
+- 텍스트 일부 강조: 문구에 `[[강조할 부분]]`, 색은 `font.accentColor`(기본 #296ef9).
 
 ### 5-4. 데이터 구동 렌더 (필수)
 - Remotion 컴포넌트는 **`layout.json` + `edits.json` + `timeline.json`을 읽어 그린다.** 값을 .tsx에 하드코딩하지 않는다.
@@ -207,6 +243,8 @@ tools: Read, Write, Edit, Bash, Agent, Glob, Grep, AskUserQuestion
 ---
 
 ## 6. [5] 계정 연결 가이드 (스튜디오 내)
+
+> **계정은 사용자별이다.** 키는 그 사용자의 `~/.config/video-agents/secrets.env`, voice_id·avatar_id는 그 프로젝트의 `project.json`에만 둔다. 플러그인·스킬·저장소에 특정 사용자의 키나 ID를 넣지 않는다. 절차는 `skills/module2-strategy-video/SKILL.md` [5]~[7].
 
 ### HeyGen
 - 웹사이트 로그인은 스튜디오 안에 임베드할 수 없다. 스튜디오는 **로그인 링크 + 단계 안내**를 보여주고, 사용자가 API 키와 avatar_id를 붙여넣게 한다.
@@ -266,9 +304,18 @@ tools: Read, Write, Edit, Bash, Agent, Glob, Grep, AskUserQuestion
 - 15분은 파트(서두·본론 섹션군·결론)별로 2~3곡을 쓴다 (CFO 영상 Plan A 방식).
 - 생성 시 길이·분위기·BPM을 정해 요청, 루프·페이드 처리. 사이드체인 덕킹은 `assemble.md` 그대로.
 
+### 렌더 — 구현됨 (데이터 구동)
+- 컴포지션 `templates/module2/remotion/Module2Section.tsx`: layout + timeline + edits를 props로 받아 그린다. 요소 상태는 스튜디오와 **같은 anim.js**로 계산 → 미리보기와 렌더가 같은 규칙.
+- `render_section.py`가 매번 플러그인 템플릿과 anim.js를 `<remotion>/codex-workspace/module2/`로 동기화하고 렌더한다. public dir = 프로젝트 폴더(이미지·영상·음성을 staticFile로 읽음). 쓰인 폰트는 프로젝트 `global_assets/fonts/`로 복사해 FontFace로 로드.
+- Remotion 프로젝트의 AGENTS.md(코덱스 에이전트 공용 규칙)를 지킨다: 작업은 `codex-workspace/module2/`에만, 공용 package.json·Root 무변경. 3D 의존성도 그 폴더에만 설치(`setup_remotion.sh`).
+- `--draft`: 0.5배 해상도 `render/preview.mp4`, 아직 없는 아바타·영상은 자리 표시. 기본: 최종 `render/sNN.mp4`(없는 아바타 파일은 경고). `render/render.json`에 상태·버전 기록.
+- 스튜디오: 섹션 머리에 "초안 렌더" 버튼(서버가 백그라운드 렌더), 재생줄의 "보기: 미리보기 / 렌더본" 전환으로 실제 렌더 영상을 같은 시점에 겹쳐 본다. 편집 후 렌더본이 오래되면 "(편집 전 버전)" 표시.
+- 실측(데모, M-시리즈 맥): 섹션 초안 2~4초, 6섹션 전체 17초. 3D 포함.
+- 합본 `assemble.py`: 섹션 mp4에서 오디오를 떼고 concat(모듈1 AAC 지연 사고 회피), 비트 WAV 원본을 섹션 시작+비트 시작 위치에 배치, BGM은 사이드체인 덕킹. 시험용 소리로 오프셋 오차 1프레임 이내 확인.
+
 ### 렌더 — Remotion + 3D
 - 2D 장표: 모듈1·CFO에서 쌓은 다이어그램 키트 + 데이터 구동 컴포넌트.
-- **3D (선택):** `@remotion/three`(React Three Fiber)로 지구본 위 거점 표시, 3D 막대·지형, 카메라 플라이스루 같은 장면. 쓰는 곳은 storyboarder가 제안하고 사용자가 고른다.
+- **3D 기본 키트 (구현됨):** `templates/module2/remotion/three/` — `globe`(지구본 거점·연결선·회전), `bars`(입체 막대·카운트업·추이선), `layers`(층 쌓기·분해·강조). 사용법과 props는 `templates/module2/remotion/THREE_KIT.md`. 요소 `type: "3d"`, 장면 안의 `at`은 **요소 등장부터 센 프레임**. 스튜디오 장표 탭의 "+ 3D …" 버튼으로 추가하고 인스펙터에서 장면 설정(JSON)을 고친다. 쓰는 곳은 director·storyboarder가 제안하고 사용자가 고른다. 새 장면이 필요하면 키트에 승격(인라인 1회성 금지).
   - 3D 장면도 `layout.json`·`timeline.json` 값으로 구동.
   - 렌더 시간이 길어 섹션 단위로 먼저 저해상도 미리보기, 확정 후 본렌더.
   - macOS 렌더는 GL 옵션(예: `--gl=angle`)을 구현 시 검증해 기록.
@@ -279,11 +326,20 @@ tools: Read, Write, Edit, Bash, Agent, Glob, Grep, AskUserQuestion
 ## 9. [4] 섹션 수정 루프 — 섹션별 서브에이전트
 
 ```
-스튜디오에서 섹션 리뷰 → comments.json / edits.json 저장 → "수정 요청" 버튼
- → 오케스트레이터가 코멘트 있는 섹션마다 서브에이전트 1개씩 병렬 실행
- → 각 에이전트는 자기 섹션 폴더만 수정, history/vN 스냅샷, 변경 요약 작성
- → 미리보기 갱신 → 사용자가 스튜디오에서 다시 확인 → 반복 → "섹션 잠금"
+스튜디오에서 섹션 리뷰 → comments.json / edits.json 자동 저장 → "수정 요청 보내기"
+   (서버가 history/vN 스냅샷을 만들고 studio/queue.json에 요청 등록, 상태 '수정 요청됨')
+ → 사용자가 채팅으로 "수정 요청 보냈어"
+ → 오케스트레이터:  studio_queue.py <p> list
+                   요청마다  studio_queue.py <p> start <rid>   # 직접 편집값을 layout/timeline에 값 그대로 합치고 비움
+                             studio_queue.py <p> brief <rid>   # 섹션 에이전트 지시문
+                   지시문으로 Agent(general-purpose)를 섹션마다 하나씩 병렬 실행
+                   각 에이전트 보고를 받아  studio_queue.py <p> done <rid> --summary "한 줄"
+ → 스튜디오가 4초 안에 감지해 섹션을 'v+1 · 수정됨·확인 필요'로 새로고침
+ → 사용자가 확인 → 추가 코멘트 또는 "섹션 잠금"
 ```
+- 직접 편집값은 에이전트가 해석하지 않도록 `start`에서 기계적으로 합친다. 에이전트는 코멘트만 처리한다.
+- 에이전트는 `comments.json` 각 항목에 `status`(resolved/needs_user)와 `resolution`(무엇을 몇으로 바꿨는지)을 남긴다. 스튜디오 코멘트 카드에 그대로 보인다.
+- 대본 문구가 바뀌면 에이전트가 "마스킹 재적용 필요"를 보고하고, 오케스트레이터가 `redact.py scan → apply`를 다시 돌린다.
 
 섹션 에이전트 브리프에 반드시 넣을 것:
 - 섹션 폴더 경로, 현재 버전, `comments.json`(open 상태만), `edits.json`
@@ -317,18 +373,28 @@ tools: Read, Write, Edit, Bash, Agent, Glob, Grep, AskUserQuestion
 
 | 구성 | 상태 | 비고 |
 |---|---|---|
-| 이 문서 (module2.md) | ✅ 설계 v0 | 2026-11-11 |
-| 마스킹 추출·매핑·게이트 `scripts/redact.py` | ⬜ 미구현 | 정규식(금액·퍼센트·단위) + 사전(회사·지역) + LLM 보조 추출, 게이트 함수 |
-| 로컬 웹 스튜디오 `templates/module2/studio/` | ⬜ 미구현 | 로컬 서버 + 섹션 뷰 + 코멘트 + 캔버스 편집 + @remotion/player 미리보기 |
-| 데이터 구동 Remotion 섹션 컴포넌트 | ⬜ 미구현 | layout/edits/timeline JSON 입력 |
+| 이 문서 (module2.md) | ✅ v1 | 2026-11-11 |
+| 프로젝트 초기화·섹션 골격 `scripts/module2/module2_init.py` | ✅ | 대본 md/docx/txt, pptx(노트 우선), `--demo` |
+| 마스킹 `scripts/module2/redact.py` | ✅ | 정규식+사전+휴리스틱, 조사 교정, 게이트, splice-plan. 놓친 토큰은 오케스트레이터가 보탬 |
+| 로컬 웹 스튜디오 `studio_server.py` + `templates/module2/studio/` | ✅ | 섹션 4레이어, 미리보기 재생, 직접 편집, 타임라인, 코멘트·첨부, 잠금·버전, 마스킹 검토, 계정 연결·녹음기·클론 |
+| 수정 대기열 `scripts/module2/studio_queue.py` | ✅ | list/start(fold)/brief/done |
+| 렌더 의미론 `templates/module2/studio/anim.js` | ✅ | 미리보기와 Remotion이 공유할 순수 함수 |
+| 데이터 구동 Remotion 섹션 컴포지션 `templates/module2/remotion/` | ✅ | anim.js 공유, 3D·영상·이미지·리치 텍스트·음성 |
+| 섹션 렌더 `scripts/module2/render_section.py` + `setup_remotion.sh` | ✅ | 초안/최종/정지 화면, 스튜디오 버튼·렌더본 보기 |
+| 합본 `scripts/module2/assemble.py` | ✅ | 비디오 concat + 나레이션 배치 + BGM 덕킹 |
 | ElevenLabs TTS·클론·음악 `scripts/tts_elevenlabs.py` | ⬜ 미구현 | tts_typecast.py 구조 재사용 |
 | 스플라이스 `scripts/splice_tokens.py` | ⬜ 미구현 | 정렬·ASR·크로스페이드·재검증 |
 | HeyGen 연동 갱신 | 🔶 기존 avatar.md | 크레딧 조회 추가 필요 |
-| 3D 키트 `templates/remotion/three/` | ⬜ 미구현 | 지구본 거점·3D 막대 우선 |
+| 공용 스킬 `skills/module2-strategy-video/SKILL.md` | ✅ | 도구 중립 절차서, Codex 연결 `install_codex_skill.sh` |
+| 3D 기본 키트 `templates/module2/remotion/three/` | ✅ | globe·bars·layers, THREE_KIT.md. 대륙 윤곽은 데이터 확보 후 |
 | 합본·자막·타이밍 | ✅ 모듈1 재사용 | assemble.md, asr_words.py, voice_qa.py, timing editor |
 | 검수 게이트 | ✅ 기존 | slide-qa, sync-qa, remotion-qa, voice-qa, final-video-qa |
 
-권장 구축 순서: ① 마스킹 → ② 스튜디오 뼈대(섹션 뷰 + 코멘트 저장) → ③ 데이터 구동 컴포넌트 + Player 미리보기 → ④ 직접 편집 → ⑤ ElevenLabs·스플라이스 → ⑥ 계정 연결 화면 → ⑦ 3D.
+알려진 한계: 카운트업은 한 텍스트 요소 안의 숫자를 전부 함께 올린다. 특정 숫자만 올리려면 요소를 나눠야 한다(데모에서 섹션 에이전트가 문장을 세 요소로 나눠 해결). 다음 버전에서 `countTarget`(강조 구간만 카운트) 옵션을 anim.js에 추가할 것.
+
+남은 구축 순서: ① ElevenLabs TTS + 실단어 스플라이스(키 권한 필요) → ② HeyGen 생성 연결(아바타 요소 src 채우기) → ③ anim.js `countTarget` → ④ 3D 장면 확장(실제 프로젝트에서 필요해지는 대로).
+
+검증(2026-11-11, `agent_design_new/module2-demo`, 가상 회사 데모 6섹션): 마스킹 13토큰 추출·조사 교정·인물 비트 강제 전환, 스튜디오 드래그·폰트·효과·타임라인 편집값 저장, 코멘트 → 수정 요청 → fold → 섹션 에이전트 → done → 스튜디오 갱신까지 한 바퀴. HeyGen 연결 테스트는 아바타·Avatar V·잔여 quota를 읽었고, ElevenLabs는 현재 키에 `user_read`·`voices_read` 권한이 없다고 정확히 표시했다.
 
 ---
 

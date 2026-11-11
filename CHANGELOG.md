@@ -1,3 +1,26 @@
+## 0.26.0 — 모듈2 공용 스킬 (Claude Code·Codex) (2026-11-11)
+- **신규 `skills/module2-strategy-video/SKILL.md`**: 도구 중립 절차서. Agent Skills 표준(name·description)이라 Claude Code 플러그인 스킬과 Codex 스킬로 같이 쓴다. Claude 전용 도구(Agent·AskUserQuestion)는 대응표로 풀어 씀 — 하위 에이전트가 없으면 섹션을 순서대로 처리.
+- **ElevenLabs·HeyGen은 사용자별**: 스킬에는 연결 절차만 두고 키·voice_id·avatar_id 값은 넣지 않는다. 키는 각 사용자의 `~/.config/video-agents/secrets.env`, ID는 각 프로젝트 `project.json`.
+- **`scripts/module2/install_codex_skill.sh`**: `~/.agents/skills` 또는 지정 저장소의 `.agents/skills`에 심볼릭 링크. 플러그인 저장소에는 `.agents/skills/module2-strategy-video` 링크 포함.
+- `agents/module2.md`: 스킬 위치, 계정 사용자별 원칙 추가.
+
+## 0.25.0 — 모듈2 렌더 연결 + 3D 기본 키트 (2026-11-11)
+- **데이터 구동 Remotion 컴포지션** `templates/module2/remotion/Module2Section.tsx`: layout/timeline/edits props, 스튜디오와 같은 anim.js로 상태 계산(미리보기 = 렌더), 텍스트·[[강조]]·이미지·영상·아바타(무음)·3D·음성, 폰트 FontFace 로드.
+- **3D 기본 키트** `templates/module2/remotion/three/`: `globe`(거점·연결선·포커스 회전), `bars`(입체 막대·카운트업·추이선), `layers`(층 쌓기·분해·강조), 한글 라벨 `TextSprite`, `THREE_KIT.md`.
+- **`scripts/module2/render_section.py`**: 템플릿·anim.js 동기화 → props 생성(폰트 복사, 음성 배치) → 초안/최종/정지 화면 렌더, `render.json` 상태. **`setup_remotion.sh`**: 3D 의존성을 `codex-workspace/module2/`에만 설치(Remotion AGENTS.md 격리 규칙 준수), 중복 remotion 제거.
+- **`scripts/module2/assemble.py`**: 섹션 비디오 concat(오디오 분리) + 비트 WAV 배치 + BGM 사이드체인 덕킹.
+- 스튜디오: "초안 렌더" 버튼(백그라운드), "보기: 미리보기/렌더본" 겹쳐 보기와 오래됨 표시, "+ 3D" 추가, 3D 장면 설정 편집.
+- 검증: 데모 6섹션 초안 17초, 3D 3종 정지 화면·프레임 시퀀스 확인, 합본 길이 2477f 일치, 나레이션 오프셋 1프레임 이내.
+
+## 0.24.0 — 모듈2 마스킹 + 로컬 스튜디오 구현 (2026-11-11)
+- **`scripts/module2/redact.py`**: 회사·금액·수치·지역·인명·일정 탐지(정규식+사전+휴리스틱), 대체어 받침에 맞춘 조사 교정, 매핑표(로컬 전용·.gitignore 자동), 마스킹본·민감 비트 인물→장표 강제 전환, 외부 전송 게이트, 실단어 어절 splice-plan.
+- **`scripts/module2/module2_init.py`**: 대본(md/docx/txt)·pptx(노트 우선)·데모 → 섹션 골격(script/beats/storyboard/layout/timeline).
+- **로컬 웹 스튜디오** `scripts/module2/studio_server.py` + `templates/module2/studio/`: 섹션 4레이어 탭, 재생 미리보기(음성 동기), 직접 편집(드래그 이동·크기·폰트·색·정렬·등장/퇴장·강조, 요소 추가/삭제, ⌘Z), 타임라인 막대 드래그(비트·ASR 단어·요소 경계 자석), 코멘트 9유형+첨부, 수정 요청·잠금·버전 되돌리기, 마스킹 검토·확정, HeyGen/ElevenLabs 연결 테스트·가이드, 보이스 클론 녹음기.
+- **`templates/module2/studio/anim.js`**: 렌더 의미론 정본(병합·프레임 상태·타자기·카운트업·[[강조]]). Remotion 컴포넌트가 같은 파일을 쓰도록 설계.
+- **`scripts/module2/studio_queue.py`**: 수정 요청 대기열 list/start(편집값 기계적 합치기)/brief(섹션 에이전트 지시문)/done.
+- `agents/module2.md` v1: 빠른 시작, 구현 상세, 수정 루프 절차, 상태표 갱신.
+- 검증: `agent_design_new/module2-demo`(가상 회사 6섹션)에서 마스킹부터 섹션 에이전트 수정·스튜디오 갱신까지 한 바퀴.
+
 ## 0.24.0-draft — 모듈2 "경영전략회의 발표영상" 설계 (2026-11-11)
 - **신규 `agents/module2.md` (설계 v0)**: 인물 HeyGen + ElevenLabs 클론 음성·음악 + Remotion(3D 선택) 약 15분 발표영상 오케스트레이터.
 - 자료(PPT/대본) 접수 → **민감정보 마스킹**(회사명→A사, 금액→99999원, 지역→임시지역, 매핑표 로컬 전용, 외부 전송 게이트).
