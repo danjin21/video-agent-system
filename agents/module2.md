@@ -23,7 +23,7 @@ python3 $S/module2_init.py <project> --script 대본.md      # 또는 --pptx 자
 python3 $S/redact.py scan <project>                        # 민감정보 추출 → 매핑표
 python3 $S/studio_server.py <project>                      # http://127.0.0.1:8765 (스튜디오)
 python3 $S/studio_queue.py <project> list                  # 사용자가 보낸 수정 요청
-$S/setup_remotion.sh                                       # (1회) 3D 의존성 설치
+python3 $S/module2_setup.py install                       # (새 PC 1회) Remotion·3D·폰트·스킬. Windows는 py -3
 python3 $S/render_section.py <project> <sNN|all> [--draft] [--still N]   # 섹션 렌더
 python3 $S/assemble.py <project> [--draft]                 # 섹션 이어 붙이기 + 나레이션 + BGM
 ```

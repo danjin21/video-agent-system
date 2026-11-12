@@ -34,15 +34,16 @@ RENDER_LOCK = threading.Lock()
 
 PLUGIN = os.path.dirname(os.path.dirname(HERE))
 STATIC = os.path.join(PLUGIN, "templates", "module2", "studio")
-SECRETS = os.path.expanduser("~/.config/video-agents/secrets.env")
-REMOTION_ROOT = os.environ.get("REMOTION_PROJECT_ROOT", "/Users/sam/Documents/remotion")
+import m2env  # noqa: E402
+m2env.fix_stdio()
+SECRETS = m2env.SECRETS
+REMOTION_ROOT = m2env.remotion_root()
 P = None  # project root
 
 
 def font_dirs():
     """폰트 검색 위치 (순서 = /fontfile/<i>/ 번호). 프로젝트 폰트가 우선."""
-    return [os.path.join(P, "global_assets", "fonts"), os.path.expanduser("~/Library/Fonts"),
-            os.path.join(REMOTION_ROOT, "public", "fonts"), "/Library/Fonts"]
+    return m2env.font_dirs(P, REMOTION_ROOT)
 
 SECTION_JSON = {"layout", "timeline", "edits", "comments", "beats", "status"}
 SECTION_TEXT = {"script": "script.md", "storyboard": "storyboard.md"}
@@ -674,7 +675,7 @@ def save_voice_sample(data, q):
     with open(raw, "wb") as f:
         f.write(data)
     wav = os.path.join(vd, "sample_%s.wav" % stamp)
-    r = subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", raw, "-ac", "1", "-ar", "44100", wav], capture_output=True, text=True)
+    r = m2env.run([m2env.which("ffmpeg") or "ffmpeg", "-y", "-loglevel", "error", "-i", raw, "-ac", "1", "-ar", "44100", wav])
     os.remove(raw)
     if r.returncode != 0:
         return {"ok": False, "error": r.stderr[-300:]}

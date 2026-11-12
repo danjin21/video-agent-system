@@ -7,19 +7,40 @@ description: 경영전략회의 발표영상(약 15분)을 만든다. PPT나 대
 
 이 문서는 **도구 중립 절차서**다. Claude Code와 Codex가 같은 파일을 읽는다. 상세 설계와 근거는 플러그인의 `agents/module2.md`(설계 정본)에 있고, 이 파일과 다르면 그 문서가 우선한다.
 
-## 0. 경로 잡기
+## 0. 새 PC 설치 (macOS·Windows 공용)
 
-```bash
-# 이 SKILL.md는 <plugin>/skills/module2-strategy-video/SKILL.md 에 있다 (심볼릭 링크면 실제 경로 기준)
-PLUGIN=$(cd "$(dirname "$(realpath <이 SKILL.md 경로>)")/../.." && pwd)
-S=$PLUGIN/scripts/module2
-P=<영상 프로젝트 폴더>                      # 예: ~/videos/2027-strategy
-export REMOTION_PROJECT_ROOT=<Remotion 프로젝트 루트>   # 사용자마다 다름
+사용자가 "이 스킬로 환경 설정해줘"라고 하면 이 순서로 한다. 모든 스크립트는 OS 공용 Python이다.
+
+**Python 실행 이름:** Windows는 `py -3`(없으면 `python`), macOS는 `python3`. 아래 `PY`가 그것이다.
+**경로:** `PLUGIN` = 이 SKILL.md에서 두 단계 위 폴더(링크·정션이면 실제 위치 기준). `S` = `PLUGIN/scripts/module2`.
+
+1. **점검** — 아무것도 바꾸지 않는다.
+   ```
+   PY S/module2_setup.py check
+   ```
+2. **기본 프로그램이 빠졌으면** (git·node 18+·ffmpeg) 사용자에게 설치해도 되는지 묻고:
+   ```
+   PY S/module2_setup.py install --prereqs     # Windows는 winget, macOS는 Homebrew
+   ```
+   Windows에서는 설치 뒤 **터미널과 Codex를 다시 열어야** PATH에 잡힌다. 다시 연 뒤 1번부터.
+   Python 자체가 없으면 사용자가 직접 설치한다(Windows: `winget install -e --id Python.Python.3.12`).
+3. **나머지 전부**:
+   ```
+   PY S/module2_setup.py install [--remotion <Remotion 폴더>]
+   ```
+   - Remotion 폴더가 없으면 새로 만든다(기본 `~/remotion`, 검증된 버전 고정, TypeScript는 5.x). 경로는 `~/.config/video-agents/module2.json`에 저장돼 이후 스크립트가 자동으로 쓴다. 환경변수 `REMOTION_PROJECT_ROOT`가 있으면 그게 우선.
+   - 3D 의존성은 `<Remotion>/codex-workspace/module2/`에만 설치한다.
+   - Pretendard 폰트를 `~/.config/video-agents/fonts`에 받는다(GitHub, 약 47MB).
+   - 이 스킬을 `~/.agents/skills/module2-strategy-video`에 연결한다(Windows는 링크 → 정션 → 복사 순으로 시도. 복사면 `git pull` 뒤 `PY S/module2_setup.py skill`을 다시 실행).
+4. 마지막 `check`에서 **계정 키 파일**만 비어 있는 게 정상이다. 키는 [5] 절차로 사용자가 넣는다.
+5. 첫 렌더는 Remotion이 렌더용 브라우저를 한 번 받아서 1분쯤 걸린다.
+
+경로 변수 (이후 절차에서 사용):
 ```
-
-필요한 것: Python 3.9+(표준 라이브러리만 씀), ffmpeg, Node.js, Remotion 프로젝트 하나.
-Codex 연결: `$S/install_codex_skill.sh`(홈 전체) 또는 `$S/install_codex_skill.sh <저장소>`(그 저장소만). 플러그인 저장소 안에서는 `.agents/skills/`에 이미 링크돼 있다.
+P = <영상 프로젝트 폴더>     # 실데이터가 들어간다. 클라우드 동기화 폴더·저장소 밖에 둔다
+```
 Remotion 프로젝트에 `AGENTS.md`가 있으면 그 규칙을 따른다. 이 스킬은 `codex-workspace/module2/` 폴더 안에서만 작업하고 공용 `package.json`·Root를 고치지 않는다.
+스튜디오 서버(`studio_server.py`)는 계속 떠 있어야 하므로, 에이전트 세션 안보다 **사용자가 연 별도 터미널**에서 켜두는 게 안정적이다.
 
 ## 1. 도구 이름 대응
 
@@ -38,15 +59,15 @@ Remotion 프로젝트에 `AGENTS.md`가 있으면 그 규칙을 따른다. 이 �
 2. 이미 받은 것은 다시 묻지 않고, 아래를 한 번에 하나씩 확인한다: 발표자·아바타 사용 여부, 목표 길이(기본 15분), 로고, BGM 방향, 사용자가 직접 만든 별도 영상 유무.
 3. 초기화:
    ```bash
-   python3 $S/module2_init.py $P --pptx 자료.pptx     # 또는 --script 대본.md / --demo
+   PY S/module2_init.py P --pptx 자료.pptx     # 또는 --script 대본.md / --demo
    ```
 
 ### [1] 마스킹 (외부 전송 전 필수)
 ```bash
-python3 $S/redact.py scan $P        # 회사명·금액·수치·지역 추출 → 매핑표
-python3 $S/studio_server.py $P      # http://127.0.0.1:8765 → '마스킹' 화면에서 사용자가 확인·확정
-python3 $S/redact.py apply $P
-python3 $S/redact.py gate $P        # 실값이 남으면 exit 1 → 외부 호출 금지
+PY S/redact.py scan P        # 회사명·금액·수치·지역 추출 → 매핑표
+PY S/studio_server.py P      # http://127.0.0.1:8765 → '마스킹' 화면에서 사용자가 확인·확정
+PY S/redact.py apply P
+PY S/redact.py gate P        # 실값이 남으면 exit 1 → 외부 호출 금지
 ```
 - 스캐너가 놓친 토큰은 `redact.py add`로 보탠다. 오탐은 `allow`.
 - 민감 토큰이 있는 비트는 인물(아바타) 모드에서 장표 모드로 자동 전환된다.
@@ -59,17 +80,17 @@ python3 $S/redact.py gate $P        # 실값이 남으면 exit 1 → 외부 호�
 
 ### [3] 스튜디오 리뷰
 ```bash
-python3 $S/studio_server.py $P      # 127.0.0.1 전용. 실데이터가 있으므로 외부 공개 금지
+PY S/studio_server.py P      # 127.0.0.1 전용. 실데이터가 있으므로 외부 공개 금지
 ```
 사용자는 섹션 하나씩 보며 코멘트(위치·크기·폰트·타이밍·효과·이미지·영상 대체·문구·자유)와 직접 편집을 남기고 "수정 요청 보내기"를 누른다.
 
 ### [4] 섹션 수정 루프
 ```bash
-python3 $S/studio_queue.py $P list
-python3 $S/studio_queue.py $P start <rid>    # 직접 편집값을 값 그대로 합침 (해석 금지)
-python3 $S/studio_queue.py $P brief <rid>    # 섹션 작업자 지시문
+PY S/studio_queue.py P list
+PY S/studio_queue.py P start <rid>    # 직접 편집값을 값 그대로 합침 (해석 금지)
+PY S/studio_queue.py P brief <rid>    # 섹션 작업자 지시문
 #  → 지시문대로 섹션 수정 (§1 표: 병렬 하위 에이전트 또는 순서대로)
-python3 $S/studio_queue.py $P done <rid> --summary "무엇을 바꿨는지 한 줄"
+PY S/studio_queue.py P done <rid> --summary "무엇을 바꿨는지 한 줄"
 ```
 - 섹션 작업자는 **자기 섹션 폴더만** 고친다. 전역 변경이 필요하면 보고만 한다.
 - 각 코멘트를 `resolved` / `needs_user`로 표시한다. 해석이 갈리면 두 안을 만들어 고르게 한다.
@@ -106,10 +127,9 @@ python3 $S/studio_queue.py $P done <rid> --summary "무엇을 바꿨는지 한 �
 
 ### [8] 렌더·합본
 ```bash
-$S/setup_remotion.sh                           # 처음 한 번 (3D 의존성, codex-workspace/module2 에만 설치)
-python3 $S/render_section.py $P s03 --draft    # 섹션 초안. 스튜디오의 '초안 렌더' 버튼과 같음
-python3 $S/render_section.py $P all            # 최종
-python3 $S/assemble.py $P                      # 섹션 이어 붙이기 + 나레이션 배치 + BGM 덕킹
+PY S/render_section.py P s03 --draft    # 섹션 초안. 스튜디오의 '초안 렌더' 버튼과 같음
+PY S/render_section.py P all            # 최종
+PY S/assemble.py P                      # 섹션 이어 붙이기 + 나레이션 배치 + BGM 덕킹
 ```
 - 스튜디오 미리보기와 렌더는 같은 `anim.js`를 쓴다. 미리보기와 다르면 버그다.
 - 음악은 사용자 트랙 또는 ElevenLabs Music(과금 → 승인). `project.json`의 `bgm.tracks`에 넣는다.

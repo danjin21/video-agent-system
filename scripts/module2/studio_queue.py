@@ -22,6 +22,11 @@ PLUGIN = os.path.dirname(os.path.dirname(HERE))
 TIMING = ["in", "out", "enter", "enterDur", "exit", "exitDur", "emphasis", "beat"]
 
 
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import m2env  # noqa: E402
+m2env.fix_stdio()
+
 def now():
     return datetime.datetime.now().isoformat(timespec="seconds")
 

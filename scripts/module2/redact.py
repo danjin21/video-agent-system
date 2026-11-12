@@ -41,6 +41,11 @@ CATS = {
 
 # ---------------------------------------------------------------- 파일 읽기
 
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import m2env  # noqa: E402
+m2env.fix_stdio()
+
 def _xml_text(data, tag_suffix):
     root = ET.fromstring(data)
     paras = []

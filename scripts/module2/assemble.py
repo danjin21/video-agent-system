@@ -18,6 +18,10 @@ import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import m2env  # noqa: E402
+m2env.fix_stdio()
+
 
 def rj(p, d=None):
     if not os.path.exists(p):
@@ -27,7 +31,7 @@ def rj(p, d=None):
 
 
 def run(cmd):
-    r = subprocess.run(cmd, capture_output=True, text=True)
+    r = m2env.run(cmd)
     if r.returncode != 0:
         sys.exit("ffmpeg 실패:\n" + r.stderr[-2000:])
 
@@ -45,7 +49,7 @@ def main():
     tmp = tempfile.mkdtemp(prefix="m2asm_")
     lst = os.path.join(tmp, "list.txt")
     offset, clips, missing = 0, [], []
-    with open(lst, "w") as f:
+    with open(lst, "w", encoding="utf-8") as f:
         for sid in secs:
             d = os.path.join(P, "sections", sid)
             src = os.path.join(d, "render", "preview.mp4" if a.draft else "%s.mp4" % sid)
@@ -54,7 +58,7 @@ def main():
                 continue
             v = os.path.join(tmp, sid + ".mp4")
             run(["ffmpeg", "-y", "-loglevel", "error", "-i", src, "-an", "-c:v", "copy", v])
-            f.write("file '%s'\n" % v)
+            f.write("file '%s'\n" % v.replace("\\", "/").replace("'", "'\\''"))
             tl = rj(os.path.join(d, "timeline.json"), {})
             starts = {b["id"]: b.get("start", 0) for b in tl.get("beats", [])}
             if tl.get("audio"):

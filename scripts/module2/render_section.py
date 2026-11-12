@@ -26,7 +26,10 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 PLUGIN = os.path.dirname(os.path.dirname(HERE))
 TPL = os.path.join(PLUGIN, "templates", "module2")
-REMOTION = os.environ.get("REMOTION_PROJECT_ROOT", "/Users/sam/Documents/remotion")
+sys.path.insert(0, HERE)
+import m2env  # noqa: E402
+m2env.fix_stdio()
+REMOTION = m2env.remotion_root()
 WS = os.path.join(REMOTION, "codex-workspace", "module2")
 WEIGHTS = {"thin": 100, "extralight": 200, "ultralight": 200, "light": 300, "regular": 400, "book": 400, "medium": 500,
            "semibold": 600, "demibold": 600, "bold": 700, "extrabold": 800, "ultrabold": 800, "black": 900, "heavy": 900}
@@ -49,8 +52,9 @@ def wj(p, o):
 
 def sync_workspace():
     if not os.path.isdir(os.path.join(WS, "node_modules", "@remotion", "three")):
-        print("3D 의존성이 없어 setup_remotion.sh 를 먼저 실행합니다.", flush=True)
-        subprocess.check_call([os.path.join(HERE, "setup_remotion.sh"), REMOTION])
+        print("3D 의존성이 없어 먼저 설치합니다 (module2_setup.py remotion).", flush=True)
+        import module2_setup
+        module2_setup.setup_three(REMOTION)
     src = os.path.join(TPL, "remotion")
     for root, _, files in os.walk(src):
         rel = os.path.relpath(root, src)
@@ -62,8 +66,7 @@ def sync_workspace():
 
 
 def font_dirs(P):
-    return [os.path.join(P, "global_assets", "fonts"), os.path.expanduser("~/Library/Fonts"),
-            os.path.join(REMOTION, "public", "fonts"), "/Library/Fonts"]
+    return m2env.font_dirs(P, REMOTION)
 
 
 def font_index(P):
@@ -155,10 +158,10 @@ def render(P, sid, draft=False, scale=None, with_audio=True, still=None, frames=
     st = rj(os.path.join(d, "status.json"), {})
     if still is not None:
         out = os.path.join(rd, "still_f%d.png" % still)
-        cmd = ["npx", "remotion", "still", "codex-workspace/module2/index.ts", "Module2Section", out, "--frame=%d" % still]
+        cmd = m2env.remotion_cli(REMOTION) + ["still", "codex-workspace/module2/index.ts", "Module2Section", out, "--frame=%d" % still]
     else:
         out = os.path.join(rd, "preview.mp4" if draft else "%s.mp4" % sid)
-        cmd = ["npx", "remotion", "render", "codex-workspace/module2/index.ts", "Module2Section", out]
+        cmd = m2env.remotion_cli(REMOTION) + ["render", "codex-workspace/module2/index.ts", "Module2Section", out]
         if not props["withAudio"]:
             cmd.append("--muted")
         if frames:
@@ -171,7 +174,7 @@ def render(P, sid, draft=False, scale=None, with_audio=True, still=None, frames=
         meta[key] = {"state": "running", "started": datetime.datetime.now().isoformat(timespec="seconds"), "version": st.get("version", 1), "scale": scale}
         wj(meta_p, meta)
     t0 = time.time()
-    r = subprocess.run(cmd, cwd=REMOTION, capture_output=True, text=True)
+    r = m2env.run(cmd, cwd=REMOTION)
     ok = r.returncode == 0 and os.path.exists(out)
     if still is None:
         meta = rj(meta_p, {})

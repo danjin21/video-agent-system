@@ -48,6 +48,11 @@ DEMO = """# 2027 전사 경영전략 (데모·가상 데이터)
 """
 
 
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import m2env  # noqa: E402
+m2env.fix_stdio()
+
 def split_sentences(text):
     text = re.sub(r"\s+", " ", text.strip())
     parts = re.split(r"(?<=[.?!다요])\s+(?=[^\s])", text)

@@ -1,3 +1,13 @@
+## 0.27.0 — 모듈2 Windows 지원 + 새 PC 설치 스크립트 (2026-11-12)
+- **신규 `scripts/module2/module2_setup.py`** (macOS·Windows 공용): `check`(점검), `install [--prereqs] [--remotion DIR]`(기본 프로그램 winget/brew → Remotion 루트 생성·버전 고정 → 3D 의존성 → Pretendard → 스킬 연결), `remotion`, `fonts`, `skill`(링크 → 정션 → 복사).
+- **신규 `scripts/module2/m2env.py`**: Remotion 루트(환경변수 → `~/.config/video-agents/module2.json` → 기본값), OS별 폰트 폴더(+공용 `~/.config/video-agents/fonts`), UTF-8 고정 실행, node로 Remotion CLI 직접 호출(npx.cmd 회피), 콘솔 UTF-8.
+- render_section·studio_server·assemble: 맥 전용 경로 제거, cp949 디코딩 오류 방지, concat 목록 UTF-8·슬래시 경로.
+- `setup_remotion.sh`·`install_codex_skill.sh`는 module2_setup.py를 부르는 얇은 래퍼(하위 호환).
+- 저장소의 `.agents/skills` 심볼릭 링크 제거 (Windows 클론에서 깨진 파일이 됨). 스킬 연결은 `module2_setup.py skill`.
+- SKILL.md §0 "새 PC 설치" 절차, 명령 표기 OS 중립화(`PY S/…`).
+- 발견: TypeScript 7이 깔리면 Remotion 번들러가 실패(`typescript.sys` 없음) → 5.x 고정.
+- 검증(macOS, 빈 홈 폴더 가정): install → 새 Remotion 루트 → 데모 6섹션 초안 렌더·합본 통과, 폰트는 공용 폴더에서만 읽음. Windows 실기 검증은 아직.
+
 ## 0.26.0 — 모듈2 공용 스킬 (Claude Code·Codex) (2026-11-11)
 - **신규 `skills/module2-strategy-video/SKILL.md`**: 도구 중립 절차서. Agent Skills 표준(name·description)이라 Claude Code 플러그인 스킬과 Codex 스킬로 같이 쓴다. Claude 전용 도구(Agent·AskUserQuestion)는 대응표로 풀어 씀 — 하위 에이전트가 없으면 섹션을 순서대로 처리.
 - **ElevenLabs·HeyGen은 사용자별**: 스킬에는 연결 절차만 두고 키·voice_id·avatar_id 값은 넣지 않는다. 키는 각 사용자의 `~/.config/video-agents/secrets.env`, ID는 각 프로젝트 `project.json`.
