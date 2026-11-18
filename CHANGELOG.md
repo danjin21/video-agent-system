@@ -1,3 +1,82 @@
+## 0.37.0 — 2026-11-18
+- 움직임: 등장 flip·drop·zoom-in, 강조 bounce·lift·shake·wiggle 추가(`transformOf` 공용 — 회전·3D 뒤집기). 큰 요소는 강조 세기 자동 축소.
+- 카드: 기본 뒤집기(뒷면 색+번호 → 앞면), 제목 안쪽 여백 자동 맞춤(최소 36, 두 줄 줄바꿈), 좁은 카드 가운데 정렬. 배치 검사 `edge`(카드·칩 테두리 여백 20px 미만 = 오류).
+- 선 차트: 기본 부드러운 곡선 + 선 끝 따라가는 점.
+- 비트마다 움직임 `beatAccent`(anim.js mergeSection): 문장 시작·긴 문장 4초마다 변화 없으면 주인공 요소 자동 강조. 정지 경고 8→6초.
+- 마일스톤 바: `Milestones.tsx`(Module2Milestones) + assemble 겹침, project.json `milestones`, 키트 `milestones`, 배치 검사 `milestone`.
+- 문장형 자막 발음 맞춤(첫 단어), 요소 `sync`로 단어 지정.
+- TTS 끝 군소리 감지·재생성(`trailing_hum`).
+- 스튜디오 디자인 키트: 비트마다 움직임·마일스톤 바 패널.
+
+## 0.36.0 — 2026-11-18
+- 사진 부품 옵션: `background`(글자 뒤 배경 — 배치 검사·화두 수 제외), `dim`(글자 읽히게 어둡게), `drift`(공개 뒤 천천히 다가감). 배경 사진 자리 표시는 화면 아래쪽.
+- 키트 애니메이션 양식에 `emphasis`(등장 기준 프레임) — 같은 양식의 모든 요소에 같은 강조. 하이라이트 강조에 `color`(키트 색) → `emphasisShadow` 공용.
+- 경고 칩(chip_alert) 기본: 46px + 등장 직후 펄스·코랄 빛 테두리(사용자 요청, 템플릿 공통).
+- direction_check `count_cut` 경고: 숫자 카운트업·막대가 다 자란 뒤 1초 안에 장면이 바뀌면 경고.
+- 키트 지문(theme_hash)을 섹션별로 — 그 섹션이 쓰는 양식·부품만 반영(다른 섹션 양식 변경으로 재렌더 안 함).
+
+## 0.35.0 — 2026-11-18
+- 사진·미디어 부품 5종(diagram kind): `zoomReveal`·`split`·`gallery`·`compare`·`stack` — reactvideoeditor/remotion-templates Image & Media 움직임을 anim.js로 옮김(MIT). 사진 없으면 자리표시, Remotion은 사진 미리 불러오기. 디자인 키트 부품·썸네일 추가.
+- 키트 지문에서 설명 글(label·idea) 제외.
+- 섹션 전환: `@remotion/transitions` 설치(module2 워크스페이스), `Transition.tsx`(Module2Transition) 추가, `assemble.py`가 경계마다 전환 조각을 렌더해 잇고 나레이션 위치를 당김. `final/master.json`에 실제 섹션 위치 기록 → 스튜디오 전체 보기 반영.
+- 디자인 키트 `transitions`(기본·챕터·섹션별) + 스튜디오 디자인 키트 탭 '섹션 전환' 편집·미리보기.
+- 렌더 기록에 `theme_hash`(transitions 제외) — 전환만 바꾸면 섹션 재렌더 불필요.
+- 음성 기록 `tts.json`에 `voice_id` 저장(어떤 목소리로 만들었는지 확인용).
+
+## 0.34.0 — 2026-11-18
+- 화두 단어 발음 맞춤: 대사에 그대로 나오는 키워드·숫자·띠·짧은 단어는 words.json의 단어 시작점에 등장. `direction_check`에 `word_sync` 경고 추가(1초 넘게 어긋남). SKILL [5] 규칙 추가.
+
+## 0.33.0 — 모듈2 배치 검사(겹침·간격) (2026-11-18)
+- **신규 `scripts/module2/layout_audit.mjs`**: 장면 시점마다 글자·선·원·막대의 실제 좌표(anim.js `collectDiagram`·`measureText`, 스튜디오·렌더와 같은 규칙)로 겹침·선이 글자를 가로지름·24px 미만 붙음·화면 밖 검사. direction_check에 연결(겹침·가로지름 = 최종 렌더 차단, 붙음·화면 밖 = 경고) → 스튜디오 연출안 탭 검수 목록.
+- 막대 차트 증가 화살표: 두 막대 사이 빈 곳(막대 윗면 아래)으로 옮기고 라벨은 그 위 가운데, 공간이 좁으면 라벨을 줄여 맞춤(최소 30px) — 값 라벨을 가로지르거나 머리말과 겹치던 문제.
+- 키트 간격: 노드 `subGap` 42→54, 대형 키워드 아래 설명 +22px.
+- 문서: SKILL.md [2-2b] 배치·간격(24px 규칙, 키트로 고치기), [2-3]·절대 하지 말 것, design-critic.md, module2.md §4-0-0b.
+- 2027 전략회의: 검사 23건(붙음) → 0건, s21 막대·s07 칩 배치 수정.
+
+## 0.32.0 — 모듈2 디자인 키트 (공통 양식의 단일 출처) (2026-11-18)
+- **`design/theme.json` 디자인 키트** (템플릿 `templates/module2/theme.json`, init이 복사): 색 10종(+설명), 글자 양식 14종(title·kicker·display·headline·statement·subline·chip·chip_alert·caption_on_video(_sub)·note·focus_num/title/sub — 위치·크기·굵기·색·박스·아이디어), 애니메이션 프리셋, 연출 부품 카탈로그 13종(아이디어).
+- 요소는 `"style"`·`"$색"`으로 참조 → `anim.js mergeSection(..., theme)`가 병합(스튜디오·Remotion 공용, `render_section` props에 theme). 양식 요소의 등장·퇴장은 motion 프리셋. diagram 기본 색도 테마(`applyKitTheme`).
+- **스튜디오 '디자인 키트' 탭**: 색 피커, 글자 양식 표(미리보기·크기·굵기·색·박스색·위치·쓰인 곳·아이디어), 애니메이션 표(▶ 미리보기), 부품 카탈로그(썸네일·쓰인 곳), 양식 밖 글자 목록. `GET/PUT /api/theme` + 사용처 집계. 테마 변경 → 모든 섹션 렌더 stale.
+- 부품 설정 `components.<부품>.params` (anim.js `KIT_PARAMS`, 키트 탭에서 숫자로 조절): 노드 원↔라벨 간격 `labelGap` 46→66, `subGap` 42.
+- 음성: 자리채움을 범주·받침에 맞춤(지역 → 해외/타국, 회사 → 협력사/제휴은행) — 조사가 실제 단어와 맞게.
+- 문서: SKILL.md [2-1b] 디자인 키트(필수), 절대 하지 말 것, module2.md §4-0-0·§5-1, director.md(키트 이름으로 소통), DIRECTION_KIT.md 색 참조.
+- 2027 전략회의 적용: 나머지 20섹션 음성 116문장(5,501자, 실패 0) 생성 → 22섹션 양식 참조로 재저장(직접 값 글자 18개만) → 전체 재렌더.
+
+## 0.31.0 — 모듈2 ElevenLabs 음성 + 목소리 복제·조정 절차 (2026-11-18)
+- **음성 생성 ElevenLabs 지원** (`tts_voice.py` 진입점, 구현 `tts_heygen.py` 공용): `/v1/text-to-speech/{id}/with-timestamps`, 사용자 클론 보이스, `voice.settings`(stability·similarity_boost·style)·speed, 앞뒤 문장 맥락(`voice.context`), 글자 시각 → 단어 시점.
+- **금액만 무음** (`voice.sensitive: silence` 기본, ElevenLabs·HeyGen 공통): 실값 대신 자리채움 숫자로 문장 전체 생성 → 글자 시각으로 그 구간만 무음. "세전이익은 ___ 으로 예상됩니다". 실값은 외부로 나가지 않음.
+- **목소리 비교 샘플** `--sample sNN:bN --variants …`: 안정성·음높이(로컬)·속도·스타일·끝처리(마지막 어절만 음높이·고음·크기 낮춤, 길이 유지)·앞뒤맥락 조합을 같은 문장으로 만들어 들려주고 고르게 함. HeyGen은 표현 강도·음높이·태그.
+- 스튜디오: 클론 시 `voice.provider=elevenlabs` 기록, 연결 테스트(플랜·글자 수·클론 수).
+- 문서: SKILL.md [5]·[6] 전면 개정(복제 → 비교 → 선택 → 생성, 피드백→조정 대응표, 프록시), module2.md §7 구현 상태·실제 사례, 절대 하지 말 것 2항목.
+- 검증: 용미니4.wav(51.6초)로 클론 → 비교 8종 → 안정성 0.85 확정 → 처음 1분 10문장 360자 생성(금액 3개만 무음, −91 dB 확인), s01 15.1초·s02 36.8초, 합본 17:39(나레이션 10개, 평균 −15.6 dB).
+
+## 0.30.0 — 모듈2 HeyGen 음성 + 속도·텀 조절 (2026-11-17)
+- **신규 `scripts/module2/tts_heygen.py`**: HeyGen `POST /v3/models/audio/tts`로 문장 단위 음성(사용자 voice_id). `--yes` 없이 보낼 문장·글자 수만 표시. 마스킹 미허용 실값 문장은 건너뜀. professional은 HeyGen speed·`heygen-voice-1`, instant는 로컬 atempo·`heygen-voice-1-turbo-free`. 단어 시점 → `beat-N.words.json`.
+- **텀·속도**: `voice.speed`/`voice.gap` 프리셋 + 비트별 `speed`/`gap_after`. 실제 음성 길이 + 텀으로 비트를 다시 잡고 layout·timeline의 in/out/emphasis/키트 props 시각을 비트 기준으로 따라 옮김(`--retime`, 외부 호출 없음).
+- 스튜디오: 대본 탭 음성 바(기본 속도·텀, **텀 적용**) + 비트별 속도·텀 선택, 🔊 실제 길이 표시. 계정 연결 HeyGen에 **voice_id** 칸, 연결 테스트가 보이스 종류·상태 확인. 보이스는 `voice.provider`로 HeyGen/ElevenLabs 구분해 각 카드에 자기 것만 표시.
+- 검증: 2027 프로젝트 처음 1분 8문장(276자) 생성, s01 18.9→15.5초·s02 49.4→41.1초로 재정렬, 합본에 나레이션 8개(평균 −15.7 dB, 피크 −0.3 dB).
+
+## 0.29.0 — 모듈2 연출 단계 연결: 연출안·연출 키트·검수 게이트 (2026-11-16)
+배경: 2027 전략회의 1차 결과물이 22섹션 모두 "제목 + 불릿 카드 + 자막 바"로 찍혀 나옴(사용자: "장표가 모두 일괄적", "숫자가 쫘라락, 건물 전경에 카메라가 도는 연출 — 기획이 다 생략", "빌드업을 해야"). 원인: SKILL.md에 director 단계가 없고, init 골격을 반복문으로 채워 렌더. director·storyboarder·design-critic의 2026-06~07 학습이 모듈2에 연결되지 않았음.
+- **연출안 단계 (필수 게이트)**: `templates/module2/direction.md` 템플릿(init이 `00-direction/`에 복사) → director가 챕터·빌드업·섹션별 주인공 장치·수치 연출·b-roll 자리를 채움 → 스튜디오 신규 **연출안** 탭에서 사용자 승인(`state.direction` 해시). 연출안이 바뀌면 재승인.
+- **연출 키트** (`anim.js` 공용 → 스튜디오 미리보기 = Remotion 렌더): `type:"diagram"` 11종(chapter·keyword·ghost·stat 카운트업·bars·line·nodes·table 행 하이라이트·cards·arrow·banner), `type:"broll"` 실사 자리표시(초안·최종 모두 장면 묘사 표시, `src` 생기면 실사, 카메라 줌·팬·회전 — 회전 시 모서리 덮는 배율 자동). 문서 `templates/module2/remotion/DIRECTION_KIT.md`(2026 하반기 영상 레시피 포함). 스튜디오 인스펙터에서 JSON·b-roll 묘사·파일·카메라 편집.
+- **연출 검수 `scripts/module2/direction_check.py`**: 오류 = 연출안 없음/템플릿/미승인/승인 뒤 변경, 골격 그대로, 글자만 있는 섹션, 숫자 연출 없음, 같은 장치 3연속. 경고 = 8초 정지, 자막 바, 굵기 800, 챕터 간지 없음. `render_section.py` 최종 렌더가 오류 시 거부(`--draft`·`--still` 허용, `--skip-check`는 사용자 허락 시만). 스튜디오 연출안 탭·전체 보기에 결과 표시.
+- init 골격 표시: `status.json scaffold:true`, 스튜디오 상태 "골격(연출 전)". 섹션 작업자가 설계 후 false.
+- 문서: SKILL.md [0] 참고 영상 질문·"기본 영상 = 연출 포함, 재료만 자리표시", [2-1] 연출안 → [2-2] 섹션별 직접 설계(일괄 생성 스크립트 금지, 자막 바 off) → [2-3] 검수, 절대 하지 말 것 4항목. `agents/module2.md` §2·§4-0·§4-0-1·§5-1·§11·§12, `agents/director.md` 모듈2 절(절제 ≠ 일괄, 빌드업, 캡처 PDF·녹취록 분석법). 루브릭: taste +6(uniform_template·numbers_colored_only·no_buildup·caption_bar_default·scaffold_shipped·basic_means_undirected), direction +3 원칙 + 학습 2건.
+- 스튜디오 마크다운 렌더에 표·인용 지원(연출안이 표 위주).
+- **한 장면에 화두 하나 (2026-11-17 사용자 지시)**: SKILL.md [2-2]·module2.md §4-1·director.md 규칙, taste-rubric `multi_topic_screen`, direction_check `busy`(동시 내용 6개 이상 오류·4~5개 경고, 같은 `group`은 하나로). banner에 `rx`(가로 띠 0)·`wipe`(왼→오 펼침), bars `add` 라벨 앞 연결선은 `leader:true`일 때만.
+- 스튜디오 미리보기 버그 수정: 세로 정렬(valign) 텍스트가 재생 중 위로 붙던 문제(drawFrame이 display를 지워 flex가 풀림). 렌더는 원래 정상.
+- bars에 `add`(막대 위 증가분이 코랄로 자람 + 옆 라벨)와 `valueAt`·`valueDur`(값 카운트업 시점 분리) 추가.
+- 실제 22섹션 제작 중 보강: cards `focus`를 배열로(말하는 카드로 초점 이동, `index:null` = 모두 밝게), 좁은 라틴 글자 폭(i·l·t 등) 보정, 배너 shine을 그라데이션으로, 정지 구간 검사가 diagram·3D 내부의 at·activeAt·subAt까지 셈.
+- 검증(Windows 11): 1차 2027 프로젝트에 검수 → 오류 27·경고 67로 차단. 데모 6섹션(init 골격 → 차단 15건) → 연출안 + 섹션별 키트 설계 → 미승인 1건만 남음 → 스튜디오에서 승인 → 통과 → 최종 렌더·합본(82.6초) 성공. 같은 프레임에서 스튜디오 미리보기와 렌더 스틸 일치, 콘솔 오류 없음.
+
+## 0.28.0 — 모듈2 스튜디오 '전체 보기' (2026-11-16)
+- **스튜디오 신규 탭 `전체 보기`** (`#full`): 합본 `final/master.mp4`(없으면 `master_draft.mp4`)를 스튜디오 안에서 처음부터 끝까지 재생. 오른쪽 섹션 챕터 목록(시작 시각·길이, 누르면 그 지점부터 재생, 재생 중 현재 섹션 강조), 플레이어 아래 현재 섹션 + '이 섹션 리뷰하기'.
+- **합본 미반영 표시 + '합본 다시 만들기'**: 섹션별 `렌더 없음`/`편집 후 렌더 필요`/`합본 이후 렌더됨`을 보여주고, 버튼 한 번으로 바뀐 섹션만 최종 렌더한 뒤 `assemble.py` 실행(서버 백그라운드, 진행 단계 표시, 끝나면 보던 위치 유지한 채 새 영상으로 교체).
+- studio_server: `GET /api/full`, `POST /api/full/build` (`full_info`·`start_full_build`). 챕터 시작은 assemble.py와 같은 기준(앞 섹션 `timeline.duration` 합).
+- 문서: `agents/module2.md` §5-5(필수 기능 — 스튜디오를 다시 만들거나 고칠 때 빼지 않는다), SKILL.md [3]·[8]·절대 하지 말 것. 회사 프록시 환경에서는 스튜디오 서버를 `NODE_USE_ENV_PROXY=1`로 띄워야 렌더 버튼이 Remotion 브라우저를 받을 수 있음.
+- 검증(Windows 11, 실제 22섹션·17분 55초 프로젝트): 챕터 이동·현재 섹션 강조, 섹션 1개 변경 감지 → 그 섹션만 렌더 → 합본 갱신(17초), '이 섹션 리뷰하기' 이동, 콘솔 오류 없음.
+
 ## 0.27.0 — 모듈2 Windows 지원 + 새 PC 설치 스크립트 (2026-11-12)
 - **신규 `scripts/module2/module2_setup.py`** (macOS·Windows 공용): `check`(점검), `install [--prereqs] [--remotion DIR]`(기본 프로그램 winget/brew → Remotion 루트 생성·버전 고정 → 3D 의존성 → Pretendard → 스킬 연결), `remotion`, `fonts`, `skill`(링크 → 정션 → 복사).
 - **신규 `scripts/module2/m2env.py`**: Remotion 루트(환경변수 → `~/.config/video-agents/module2.json` → 기본값), OS별 폰트 폴더(+공용 `~/.config/video-agents/fonts`), UTF-8 고정 실행, node로 Remotion CLI 직접 호출(npx.cmd 회피), 콘솔 UTF-8.

@@ -1,6 +1,6 @@
 {
   "_note": "design-critic 취향 루브릭 시드. 프로젝트는 design/taste-rubric.json으로 복사·학습. 사용자 교정마다 항목 추가/가중치 조정.",
-  "version": "seed-2026-07-01",
+  "version": "seed-2026-11-16",
   "anti_patterns": [
     {"id": "clutter_label", "severity": "high", "smell": "화면을 설명하는 회색 중간 안내문/메타 라벨", "example": "'오늘 함께 볼 곡선, 셋'", "fix": "제거 — 요소 등장 자체로 말한다"},
     {"id": "marker_off_referent", "severity": "high", "smell": "주석·마커가 가리키는 대상과 어긋남", "example": "'역전' 점이 곡선 교차점이 아님 / 태그 overhang", "fix": "referent 좌표에 정확히(교차점·해당 막대)"},
@@ -25,6 +25,13 @@
     {"id": "avatar_side_panel", "severity": "high", "smell": "아바타 발화 중 화면을 줄여 양옆에 단색 블루 패널/레터박스(2026-07: '아바타 말할 땐 양옆 파란 영역 없어야, 무조건 풀스크린')", "fix": "아바타 발화는 풀스크린(cover). 아바타를 축소해 사이드 패널 만들지 말 것"},
     {"id": "avatar_on_interstitial", "severity": "high", "smell": "인사·간지에 인물(아바타) 노출(2026-07 v2: '간지에 인물 이상하다', '그냥 처음이랑 끝만 인물')", "fix": "아바타는 처음(표지)·끝(클로징)만. 인사·간지는 무인물 키워드/장표 + 보이스오버"},
     {"id": "avatar_black_cut", "severity": "high", "smell": "인물이 말하다가 컷/검은화면으로 끊김(2026-07 v2: '말하다가 끊기고 검은화면으로 끊기고 이상')", "fix": "한 인물 씬은 끊김 없이 연속. 아바타 클립 사이 갭/검은프레임 금지, 이상적으론 연속 단일 클립"},
-    {"id": "avatar_text_overlay_default_off", "severity": "mid", "smell": "인물 발화 중 텍스트 오버레이(강조어)가 떠 산만(2026-07 v2: '인물 이야기할 때 텍스트 우선 없애')", "fix": "인물 발화 중 텍스트 오버레이 기본 off. 아바타 영상만(추후 세부 조정 시에만 추가)"}
+    {"id": "avatar_text_overlay_default_off", "severity": "mid", "smell": "인물 발화 중 텍스트 오버레이(강조어)가 떠 산만(2026-07 v2: '인물 이야기할 때 텍스트 우선 없애')", "fix": "인물 발화 중 텍스트 오버레이 기본 off. 아바타 영상만(추후 세부 조정 시에만 추가)"},
+    {"id": "uniform_template", "severity": "high", "smell": "모든 장표가 같은 틀(제목 + 불릿 카드 3~6개)로 찍혀 나옴 — 장표마다 항목 나열만(2026-11: '장표가 모두 일괄적이다, 3-4개 항목을 나열하기만 한다')", "fix": "연출안에서 섹션마다 주인공 장치 1개(chapter·stat·bars·table·cards·nodes·keyword·broll·3D)를 고르고 같은 구성 3연속 금지. 생성 스크립트로 일괄 생성 금지"},
+    {"id": "numbers_colored_only", "severity": "high", "smell": "매출·이익 같은 핵심 수치가 글자색만 파랗게 바뀌고 끝남(2026-11: '숫자가 쫘라라락 바뀌면서 나와야')", "fix": "stat 카운트업(발화 순간 정착, ≤0.8초) + 비교 막대/화살표/증감 칩"},
+    {"id": "no_buildup", "severity": "high", "smell": "섹션이 같은 높이로 나열돼 도입·고조·클라이맥스·수미상관이 없음(2026-11: '빌드업을 해야 하는데')", "fix": "연출안 §3 챕터 구조·에너지 곡선, 챕터 간지, 클라이맥스 대형 reveal, 감정 고점 실사 자리, 첫 장면을 끝에서 다시 부르기"},
+    {"id": "caption_bar_default", "severity": "mid", "smell": "하단에 대사 전문 자막 바를 상시 깔아 화면이 '읽는 장표'가 됨", "fix": "자막 바 기본 off. 화면 글자는 키워드·체언"},
+    {"id": "scaffold_shipped", "severity": "high", "smell": "init 골격(자리표시 레이아웃)을 그대로 렌더해 영상으로 제출", "fix": "골격은 스튜디오가 열리게 하는 자리표시. 연출안 승인 → 섹션별 직접 설계 → scaffold:false"},
+    {"id": "basic_means_undirected", "severity": "high", "smell": "'아바타·목소리 빼고 기본 영상'을 '연출도 빼고'로 해석", "fix": "연출은 전부 하고 없는 재료(아바타·실사·음성)만 자리표시·추정 시간"},
+    {"id": "multi_topic_screen", "severity": "high", "smell": "한 화면에 여러 화두(숫자·카드·칩·배너)를 장표처럼 가로·세로로 동시에 깔아 스파게티가 됨(2026-11-17: '한 내용에 하나의 큰 화두가 보여야 한다')", "fix": "화두 단위 장면으로 나눠 지금 화두만 가운데에 크게, 다음 화두가 오면 이전 화두 퇴장. 반전 문장은 코랄 가로 띠"}
   ]
 }

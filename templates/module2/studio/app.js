@@ -1,5 +1,5 @@
 // 모듈2 스튜디오 — 섹션 리뷰·직접 편집·코멘트·마스킹 검토·계정 연결
-import { mergeSection, stateAt, displayText, richSegments, fmtTime, ENTER_EFFECTS, EXIT_EFFECTS, EMPHASIS } from "./anim.js";
+import { mergeSection, stateAt, displayText, richSegments, fmtTime, ENTER_EFFECTS, EXIT_EFFECTS, EMPHASIS, DIAGRAM_KINDS, diagramSVG, brollSVG, brollCamera, resolveColors, applyKitTheme, setMediaResolver, emphasisShadow, transformOf } from "./anim.js";
 
 // ------------------------------------------------------------------ 유틸
 const $ = (s, r = document) => r.querySelector(s);
@@ -43,7 +43,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 const clone = (o) => JSON.parse(JSON.stringify(o));
 const sec = (f, fps) => (f / fps).toFixed(1) + "s";
 
-const STATUS = { draft: "초안", commented: "코멘트 있음", revision_requested: "수정 요청됨", in_progress: "수정 중", revised: "수정됨·확인 필요", locked: "잠금" };
+const STATUS = { scaffold: "골격(연출 전)", draft: "초안", commented: "코멘트 있음", revision_requested: "수정 요청됨", in_progress: "수정 중", revised: "수정됨·확인 필요", locked: "잠금" };
 const CTYPES = { move: "위치", resize: "크기", font: "폰트", timing: "타이밍", effect: "효과", image: "이미지 넣기", replace_video: "영상으로 대체", text: "문구", free: "자유 의견" };
 const MODES = { avatar: "인물", slide: "장표", "3d": "3D", video: "영상" };
 // 3D 장면 (templates/module2/remotion/three/). 장면 props 안의 at은 "요소 등장(in)부터 센 프레임".
@@ -73,9 +73,11 @@ async function boot() {
     for (const k in S.families) S.families[k].sort((a, b) => a - b);
   } catch (e) { console.warn(e); }
   await refreshProject();
+  try { S.theme = (await api("GET", "/api/theme")).theme; } catch (e) { S.theme = null; }
   const [hv, hs] = location.hash.slice(1).split("/");
   if (hs && S.project.sections.some((x) => x.id === hs)) S.cur = hs;
-  setView(["sections", "redaction", "accounts", "guide"].includes(hv) ? hv : "sections");
+  setView(["direction", "sections", "full", "kit", "redaction", "accounts", "guide"].includes(hv) ? hv : "sections");
+  refreshDirBadge();
   setInterval(poll, 4000);
   window.addEventListener("keydown", onKey);
 }
@@ -96,6 +98,7 @@ async function poll() {
   try {
     const before = S.project;
     await refreshProject();
+    if (S.view === "full") await pollFull();
     if (S.view === "sections") {
       renderList();
       if (S.cur && S.sec) {
@@ -128,6 +131,9 @@ function setView(v) {
   const app = $("#app");
   app.innerHTML = "";
   if (v === "sections") viewSections(app);
+  else if (v === "full") viewFull(app);
+  else if (v === "direction") viewDirection(app);
+  else if (v === "kit") viewKit(app);
   else if (v === "redaction") viewRedaction(app);
   else if (v === "accounts") viewAccounts(app);
   else viewGuide(app);
@@ -207,7 +213,7 @@ async function loadSection(sid, keepFrame) {
 }
 S.locked = () => !!(S.sec && S.sec.status && S.sec.status.locked);
 
-function remerge() { S.m = mergeSection(S.sec.layout, S.sec.timeline, S.edits); }
+function remerge() { S.m = mergeSection(S.sec.layout, S.sec.timeline, S.edits, S.theme); }
 const findEl = (id) => S.m.elements.find((e) => e.id === id);
 
 // ------------------------------------------------------------------ 헤더
@@ -305,6 +311,8 @@ function fitStage() {
   st.style.transform = `scale(${S.scale})`;
 }
 
+setMediaResolver((src) => resolveSrc(src));   // diagram 안 사진도 스튜디오 파일 경로로
+
 function resolveSrc(src) {
   if (!src) return "";
   if (/^(https?:|data:|blob:)/.test(src)) return src;
@@ -327,6 +335,16 @@ function buildStage() {
       content = h("div", { style: { width: "100%", height: "100%", position: "relative" } }, h("div", { class: "ph" }, el.text || (el.type === "avatar" ? "아바타" : "영상")));
       if (el.src) {
         const v = h("video", { src: resolveSrc(el.src), muted: true, playsInline: true, preload: "auto", style: { position: "absolute", inset: 0 } });
+        v.addEventListener("error", () => v.remove());
+        content.append(v);
+        node._video = v;
+      }
+    } else if (el.type === "diagram") {
+      content = h("div", { class: "dg", style: { width: "100%", height: "100%", overflow: "visible" } });
+    } else if (el.type === "broll") {
+      content = h("div", { style: { width: "100%", height: "100%", position: "relative", overflow: "hidden" } }, h("div", { class: "brph", style: { position: "absolute", inset: 0 } }));
+      if (el.src) {
+        const v = h("video", { src: resolveSrc(el.src), muted: true, playsInline: true, preload: "auto", style: { position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" } });
         v.addEventListener("error", () => v.remove());
         content.append(v);
         node._video = v;
@@ -380,7 +398,10 @@ function applyStatic(el, node) {
     color: f.color || "", textAlign: f.align || "left", lineHeight: f.lineHeight || "", letterSpacing: f.letterSpacing != null ? f.letterSpacing + "px" : "",
     display: "", alignItems: "", justifyContent: "",
   });
+  // 세로 정렬은 flex로. drawFrame이 보이기/숨기기를 할 때 이 값으로 되돌린다(빈 값으로 지우면 세로 정렬이 사라짐)
+  node._disp = "";
   if (el.type === "text" && el.valign) {
+    node._disp = "flex";
     node.style.display = "flex";
     node.style.alignItems = { top: "flex-start", middle: "center", bottom: "flex-end" }[el.valign] || "flex-start";
     node.style.justifyContent = { left: "flex-start", center: "center", right: "flex-end" }[f.align] || "flex-start";
@@ -399,6 +420,27 @@ function setText(box, el, st) {
   for (const s of richSegments(raw, st)) box.append(s.accent ? h("span", { style: { color: accent } }, s.text) : s.text);
 }
 
+// 연출 키트 요소 (anim.js의 같은 함수 → 렌더와 동일). 같은 프레임이면 다시 그리지 않는다.
+function drawKit(el, node, lf) {
+  const span = el.t.out - el.t.in;
+  if (el.type === "diagram") {
+    const key = JSON.stringify([lf, el.w, el.h, el.kind, el.props]);
+    if (node._kitKey === key || !node._content) return;
+    node._kitKey = key;
+    node._content.innerHTML = diagramSVG(el, Math.min(lf, 100000));
+    return;
+  }
+  const lfc = Math.min(Math.max(0, lf), span);
+  const cam = brollCamera(el, lfc, span);
+  if (node._video && node._video.isConnected) {
+    node._video.style.transform = `translate(${cam.tx}px, ${cam.ty}px) rotate(${cam.rotate}deg) scale(${cam.scale})`;
+    return;
+  }
+  const ph = node._content && node._content.querySelector(".brph");
+  const key = JSON.stringify([lfc, el.w, el.h, el.slot, el.query, el.props]);
+  if (ph && node._kitKey !== key) { node._kitKey = key; ph.innerHTML = brollSVG(el, lfc, span); }
+}
+
 function drawFrame() {
   if (!S.m) return;
   const f = Math.round(S.frame);
@@ -407,7 +449,7 @@ function drawFrame() {
     if (!node) continue;
     const st = stateAt(el, f);
     if (S.edit) {
-      node.style.display = "";
+      node.style.display = node._disp || "";
       node.style.opacity = st.visible ? "1" : "0.28";
       node.classList.toggle("ghost", !st.visible);
       node.style.transform = "";
@@ -416,13 +458,14 @@ function drawFrame() {
       if (el.type === "text" && node._content) setText(node._content, el, { text: 1, count: 1 });
     } else {
       node.classList.remove("ghost");
-      node.style.display = st.visible ? "" : "none";
+      node.style.display = st.visible ? node._disp || "" : "none";
       node.style.opacity = String(st.opacity);
-      node.style.transform = `translate(${st.tx}px, ${st.ty}px) scale(${st.scale})`;
+      node.style.transform = transformOf(st);
       node.style.clipPath = st.clipL || st.clipR ? `inset(-20px ${st.clipR}% -20px ${st.clipL}%)` : "";
-      node.style.boxShadow = st.highlight ? `0 0 0 ${14 * st.highlight}px rgba(255,214,0,${0.4 * st.highlight})` : "";
+      node.style.boxShadow = emphasisShadow(st);
       if (el.type === "text" && node._content) setText(node._content, el, st);
     }
+    if (el.type === "diagram" || el.type === "broll") drawKit(el, node, S.edit ? 100000 : f - el.t.in);
     if (node._video && !S.playing) {
       const t = Math.max(0, (f - el.t.in) / S.m.fps);
       if (Math.abs(node._video.currentTime - t) > 0.05) node._video.currentTime = t;
@@ -712,17 +755,28 @@ function renderTabs() {
 function renderTabsIfTimeline() { if (S.tab === "timeline" || S.tab === "layout") renderTabs(); }
 
 function md(s) {
-  const lines = esc(s).split("\n");
-  let out = "", inList = false;
+  const lines = String(s || "").replace(/<!--[\s\S]*?-->/g, "").split("\n").map(esc);
+  let out = "", inList = false, inTbl = false;
   for (let l of lines) {
     l = l.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`(.+?)`/g, "<code>$1</code>");
+    // 표: | a | b | — 구분 줄(|---|)은 건너뛰고 첫 줄은 머리글
+    if (/^\s*\|.*\|\s*$/.test(l)) {
+      if (/^\s*\|[\s:|-]+\|\s*$/.test(l)) continue;
+      const cells = l.trim().slice(1, -1).split("|").map((c) => c.trim());
+      if (inList) { out += "</ul>"; inList = false; }
+      if (!inTbl) { out += `<table class="tbl mdtbl"><thead><tr>${cells.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>`; inTbl = true; }
+      else out += `<tr>${cells.map((c) => `<td>${c}</td>`).join("")}</tr>`;
+      continue;
+    }
+    if (inTbl) { out += "</tbody></table>"; inTbl = false; }
     if (/^\s*[-*] /.test(l)) { if (!inList) { out += "<ul>"; inList = true; } out += "<li>" + l.replace(/^\s*[-*] /, "") + "</li>"; continue; }
     if (inList) { out += "</ul>"; inList = false; }
+    if (/^&gt; /.test(l)) { out += `<blockquote>${l.slice(5)}</blockquote>`; continue; }
     const m = l.match(/^(#{1,3}) (.*)/);
     if (m) out += `<h${m[1].length}>${m[2]}</h${m[1].length}>`;
     else if (l.trim()) out += `<p>${l}</p>`;
   }
-  return out + (inList ? "</ul>" : "");
+  return out + (inList ? "</ul>" : "") + (inTbl ? "</tbody></table>" : "");
 }
 
 function tabScript(body) {
@@ -732,6 +786,23 @@ function tabScript(body) {
   const tlb = {};
   for (const b of (S.sec.timeline && S.sec.timeline.beats) || []) tlb[b.id] = b;
   if (!beats.length) return body.append(h("div", { class: "empty" }, "비트가 없습니다."));
+  // 음성: 프로젝트 기본 속도·문장 사이 텀 + 비트별 덮어쓰기. 텀은 음성을 다시 만들지 않고 타임라인만 다시 잡는다.
+  const V = S.project.voice || {};
+  const SPD = { "": "기본", slow: "천천히", medium: "보통", fast: "빠르게" }, GAPS = { "": "기본", short: "짧게", medium: "중간", long: "많이" };
+  const sel = (opts, val, on, title) => h("select", { title, onchange: (e) => on(e.target.value) }, Object.entries(opts).map(([k, v]) => h("option", { value: k, selected: (val || "") === k }, v)));
+  const setVoice = async (patch) => { await api("POST", "/api/voice/settings", patch); await refreshProject(); toast("음성 기본값을 바꿨어요. 속도는 음성을 다시 만들 때, 텀은 '텀 적용'에서 반영됩니다."); };
+  const setBeat = async (beat, patch) => { await api("POST", `/api/section/${S.cur}/voicebeat`, Object.assign({ beat }, patch)); const b = beats.find((x) => x.id === beat); Object.assign(b, patch); for (const k in patch) if (!patch[k]) delete b[k]; };
+  const voiced = beats.filter((b) => b.audio_sec).length;
+  body.append(h("div", { class: "row voicebar", style: { marginBottom: "10px", flexWrap: "wrap" } },
+    h("b", {}, "음성"),
+    h("span", { class: "small muted" }, V.voice_set ? `HeyGen · ${voiced}/${beats.length}문장 생성됨` : "보이스 미설정"),
+    h("span", { class: "spacer" }),
+    h("label", { class: "small" }, "말 속도(기본)"), sel({ slow: "천천히", medium: "보통", fast: "빠르게" }, V.speed || "medium", (v) => setVoice({ speed: v }), "프로젝트 전체 기본 속도"),
+    h("label", { class: "small" }, "문장 사이 텀(기본)"), sel({ short: "짧게", medium: "중간", long: "많이" }, V.gap || "medium", (v) => setVoice({ gap: v }), "프로젝트 전체 기본 텀"),
+    h("button", {
+      class: "primary", disabled: S.locked(), title: "음성은 그대로 두고, 문장 사이 텀을 지금 설정대로 다시 잡습니다(장면 타이밍도 함께 이동).",
+      onclick: async () => { await flushSave(); try { const r = await api("POST", `/api/section/${S.cur}/retime`); toast(`텀을 반영했어요 — 섹션 ${(r.duration / S.m.fps).toFixed(1)}초`); await refreshProject(); await loadSection(S.cur); } catch (e) { toast(e.message, 5000); } },
+    }, "텀 적용")));
   if (!S.sec.beats_masked) body.append(h("div", { class: "small muted", style: { marginBottom: "8px" } }, "마스킹이 아직 확정되지 않았어요. 상단 '마스킹' 탭에서 확정하면 외부 전송용 문장이 여기에 함께 보입니다."));
   for (const b of beats) {
     const mb = masked[b.id];
@@ -748,7 +819,9 @@ function tabScript(body) {
         words ? h("div", { class: "small muted" }, `ASR ${words.words.length}단어 · 실측 ${words.duration_s}s`) : null),
       h("div", { class: "row", style: { alignItems: "flex-start" } },
         h("span", { class: "chip " + mode }, MODES[mode] || mode),
-        h("span", { class: "chip" }, (b.est_sec || 0).toFixed ? b.est_sec.toFixed(1) + "s" : ""),
+        b.audio_sec ? h("span", { class: "chip locked", title: "생성된 음성 길이" }, "🔊 " + b.audio_sec.toFixed(1) + "s") : h("span", { class: "chip", title: "음성 없음 — 추정 길이" }, (b.est_sec || 0).toFixed ? b.est_sec.toFixed(1) + "s" : ""),
+        sel(SPD, b.speed, (v) => setBeat(b.id, { speed: v || null }), "이 문장 말 속도 (다음 음성 생성 때 반영)"),
+        sel(GAPS, b.gap_after, (v) => setBeat(b.id, { gap_after: v || null }), "이 문장 뒤 텀 ('텀 적용'으로 반영)"),
         tlb[b.id] ? h("button", { class: "ghost small", onclick: () => seek(tlb[b.id].start) }, "이동") : null,
         h("button", { class: "ghost small", onclick: () => prefillComment("text", `[${b.id}] `) }, "문구 코멘트"))));
   }
@@ -945,6 +1018,22 @@ function inspector(el) {
       h("textarea", { rows: 12, class: "mono", style: { fontSize: "11px" }, value: JSON.stringify(el.props || {}, null, 1),
         onchange: (e) => { try { set({ props: JSON.parse(e.target.value) }); toast("장면 설정을 저장했어요. 초안 렌더로 확인하세요."); } catch (err) { toast("JSON 형식 오류: " + err.message, 5000); } } }),
       h("div", { class: "small muted" }, "지구본: markers(lat·lon·label·at·home), focus(at·lat·lon·zoom). 막대: bars(label·value·display·at·highlight), trend. 층: layers(label·sub·at), explodeAt, focus(at·index).")) : null,
+    el.type === "diagram" ? h("div", { class: "sec" },
+      h("label", {}, "연출 키트 — " + (DIAGRAM_KINDS[el.kind] || el.kind)),
+      h("label", {}, "설정 (JSON) — 안의 at·dur는 이 요소가 등장한 뒤 몇 프레임째인지"),
+      h("textarea", { rows: 14, class: "mono", style: { fontSize: "11px" }, value: JSON.stringify(el.props || {}, null, 1),
+        onchange: (e) => { try { set({ props: JSON.parse(e.target.value) }); toast("저장했어요. 재생으로 바로 확인됩니다."); } catch (err) { toast("JSON 형식 오류: " + err.message, 5000); } } }),
+      h("div", { class: "small muted" }, "종류별 설정은 플러그인 templates/module2/remotion/DIRECTION_KIT.md")) : null,
+    el.type === "broll" ? h("div", { class: "sec" },
+      h("label", {}, "B-ROLL 장면 묘사 (자리표시에 표시)"),
+      h("textarea", { rows: 3, value: el.slot || "", onchange: (e) => set({ slot: e.target.value }) }),
+      h("label", {}, "검색어 (영문)"),
+      h("input", { value: el.query || "", onchange: (e) => set({ query: e.target.value }) }),
+      h("label", {}, "영상 파일 (프로젝트 기준 경로, 비우면 자리표시)"),
+      h("input", { value: el.src || "", placeholder: "global_assets/clips/building.mp4", onchange: (e) => set({ src: e.target.value || null }, true) }),
+      h("label", {}, "카메라 (JSON: zoomFrom·zoomTo·panX·panY·rotate)"),
+      h("input", { class: "mono", value: JSON.stringify((el.props && el.props.camera) || { zoomFrom: 1, zoomTo: 1.06 }),
+        onchange: (e) => { try { set({ props: Object.assign({}, el.props || {}, { camera: JSON.parse(e.target.value) }) }); } catch (err) { toast("JSON 형식 오류: " + err.message, 5000); } } })) : null,
     h("div", { class: "sec" },
       h("div", { class: "g2" },
         h("div", {}, h("label", {}, "배경"), h("div", { class: "row" },
@@ -1158,19 +1247,22 @@ async function viewAccounts(app) {
   // HeyGen
   const hgKey = h("input", { type: "password", placeholder: acc.heygen.key_set ? "저장됨 — 바꿀 때만 입력" : "HeyGen API 키", style: { width: "100%" } });
   const hgAv = h("input", { value: acc.heygen.avatar_id || "", placeholder: "avatar_id (Look ID)", style: { width: "100%" } });
+  const hgVo = h("input", { value: acc.heygen.voice_id || "", placeholder: "voice_id (음성 보이스 ID)", style: { width: "100%" } });
   const hgRes = h("div");
   const hg = h("div", { class: "card" },
-    h("div", { class: "row" }, h("h3", { style: { margin: 0 } }, "HeyGen — 인물(아바타)"), h("span", { class: "spacer" }), h("span", { class: "chip " + (acc.heygen.key_set ? "locked" : "needs_user") }, acc.heygen.key_set ? "키 있음" : "키 없음")),
+    h("div", { class: "row" }, h("h3", { style: { margin: 0 } }, "HeyGen — 인물(아바타) · 음성"), h("span", { class: "spacer" }), h("span", { class: "chip " + (acc.heygen.key_set ? "locked" : "needs_user") }, acc.heygen.key_set ? "키 있음" : "키 없음")),
     h("ol", { class: "steps" },
       h("li", {}, h("a", { href: "https://app.heygen.com/", target: "_blank" }, "HeyGen에 로그인"), " 합니다. (보안상 이 화면 안에서 로그인 창을 열 수는 없어 새 탭으로 엽니다.)"),
       h("li", {}, "발표자 아바타가 없으면 ", h("b", {}, "Avatars → Create Avatar"), "로 만듭니다. 정면 상반신, 밝고 고른 조명, 단색 배경, 2분 이상 자연스럽게 말하는 영상이 좋습니다."),
       h("li", {}, "아바타 상세에서 ", h("b", {}, "Look ID(avatar_id)"), "를 복사합니다."),
       h("li", {}, h("a", { href: "https://app.heygen.com/settings?nav=API", target: "_blank" }, "Settings → API"), "에서 API 키를 복사합니다."),
-      h("li", {}, "아래에 붙여넣고 저장 → 연결 테스트로 아바타·Avatar V 지원·잔여 크레딧을 확인합니다.")),
+      h("li", {}, "음성도 HeyGen으로 만들면 ", h("b", {}, "Voices"), "에서 본인 보이스의 ", h("b", {}, "voice_id"), "를 복사합니다."),
+      h("li", {}, "아래에 붙여넣고 저장 → 연결 테스트로 아바타·Avatar V 지원·잔여 크레딧·보이스 종류를 확인합니다.")),
     h("label", { class: "small muted" }, "API 키"), hgKey,
     h("label", { class: "small muted", style: { display: "block", marginTop: "6px" } }, "avatar_id"), hgAv,
+    h("label", { class: "small muted", style: { display: "block", marginTop: "6px" } }, "voice_id (음성 — 저장하면 이 프로젝트 음성은 HeyGen으로 만듭니다)"), hgVo,
     h("div", { class: "row", style: { marginTop: "10px" } },
-      h("button", { onclick: async () => { await api("POST", "/api/accounts/heygen", { api_key: hgKey.value, avatar_id: hgAv.value }); hgKey.value = ""; toast("저장했어요"); } }, "저장"),
+      h("button", { onclick: async () => { await api("POST", "/api/accounts/heygen", { api_key: hgKey.value, avatar_id: hgAv.value, voice_id: hgVo.value }); hgKey.value = ""; toast("저장했어요"); } }, "저장"),
       h("button", { class: "primary", onclick: async () => { hgRes.innerHTML = "테스트 중…"; const r = await api("POST", "/api/accounts/heygen/test"); hgRes.innerHTML = ""; hgRes.append(checksBox(r)); if (r.avatar && r.avatar.preview) hgRes.append(h("img", { src: r.avatar.preview, style: { maxWidth: "220px", borderRadius: "8px", marginTop: "8px" } })); } }, "연결 테스트")),
     hgRes,
     h("div", { class: "small muted", style: { marginTop: "10px" } }, "비용 감각: Avatar V 약 $0.05/초. 15분 영상에서 인물이 처음·끝 합쳐 2분이면 약 $6. 크레딧이 모자라면 클로징 클립을 못 만드는 일이 있었으니 생성 전 잔여 크레딧을 꼭 확인합니다."));
@@ -1292,6 +1384,426 @@ function recorder() {
   return box;
 }
 
+// ================================================================== 디자인 키트 (design/theme.json)
+// 공통 양식의 단일 출처: 색 · 글자 양식(제목·머리말·화두 문장·칩…) · 애니메이션 양식 · 연출 부품 카탈로그.
+// 여기서 바꾸면 그 양식을 참조하는 모든 섹션 미리보기에 바로 반영된다(영상은 '합본 다시 만들기').
+const KIT_DEMOS = {
+  zoomReveal: { w: 1920, h: 1080, props: { slot: "건물 전경", caption: "사진 위 한 줄" } },
+  split: { w: 1600, h: 700, props: { left: { label: "국내", slot: "왼쪽" }, right: { label: "해외", slot: "오른쪽" }, vs: "VS" } },
+  gallery: { w: 1500, h: 760, props: { images: [1, 2, 3, 4, 5, 6].map((i) => ({ label: "사진 " + i })), cols: 3 } },
+  compare: { w: 1600, h: 900, props: { before: { label: "전" }, after: { label: "후" } } },
+  stack: { w: 1400, h: 900, props: { images: [{}, {}, { label: "맨 위 사진" }] } },
+  chapter: { w: 1920, h: 1080, props: { num: "01", title: "챕터 제목", sub: "Chapter", onBlue: true } },
+  keyword: { w: 1600, h: 400, props: { text: "Beyond", size: 220 } },
+  ghost: { w: 1600, h: 500, props: { text: "10년", size: 320, maxOpacity: 0.25 } },
+  stat: { w: 1200, h: 520, props: { value: "4,178", unit: "억 원", label: "세전이익", delta: "+2배", size: 220 } },
+  bars: { w: 900, h: 600, props: { bars: [{ label: "전년", value: 440, display: "" }, { label: "올해", value: 440, display: "543조", highlight: true, add: { value: 103, label: "+103조", at: 0 } }], max: 600, barWidth: 180, valueSize: 56 } },
+  line: { w: 1000, h: 500, props: { series: [{ points: [3, 3.6, 3.3, 4.2, 3.9, 4.7] }], labels: ["", "", "", "", "", ""], markers: [{ i: 5, text: "정점" }] } },
+  nodes: { w: 1200, h: 500, props: { nodes: [{ id: "a", x: 220, y: 200, r: 110, glyph: "고객", label: "고객" }, { id: "b", x: 600, y: 200, r: 110, glyph: "상품", label: "상품" }, { id: "c", x: 980, y: 200, r: 110, glyph: "채널", label: "채널", fill: "$coral" }], links: [{ from: "a", to: "b", arrow: true }, { from: "b", to: "c", arrow: true }] } },
+  table: { w: 1300, h: 420, props: { cols: ["구분", "목표", "현재"], rows: [["ETF", "40%", "39.4%"], ["연금", "14.5%", "13.1%"]], highlights: [{ row: 0, at: 0 }], accentCol: 1, rowH: 110 } },
+  cards: { w: 1500, h: 400, props: { cards: [{ num: "01", title: "성장" }, { num: "02", title: "신사업" }, { num: "03", title: "글로벌" }], titleSize: 64, focus: [{ index: 1, at: 0 }] } },
+  arrow: { w: 900, h: 450, props: { label: "격차 확대", color: "$coral", width: 14 } },
+  banner: { w: 1920, h: 200, props: { text: "하지만, 모두가 같은 성과를 낸 것은 아니다", fill: "$coral", rx: 0, size: 68 } },
+};
+
+async function viewKit(app) {
+  const r = await api("GET", "/api/theme");
+  S.theme = r.theme;
+  S.kitUsage = r.usage;
+  app.append(h("div", { id: "kitRoot" }));
+  renderKit();
+}
+
+let kitSaveT;
+function kitChanged(rerender = true) {
+  clearTimeout(kitSaveT);
+  const st = $("#kitSave"); if (st) st.textContent = "저장 중…";
+  kitSaveT = setTimeout(async () => {
+    try { const r = await api("PUT", "/api/theme", S.theme); S.theme.version = r.version; const st2 = $("#kitSave"); if (st2) st2.textContent = "저장됨 · v" + r.version; }
+    catch (e) { toast("저장 실패: " + e.message, 5000); }
+  }, 500);
+  if (rerender) renderKit();
+}
+
+const COLOR_OPTS = () => Object.keys(S.theme.colors || {});
+const colorOf = (v) => (typeof v === "string" && v[0] === "$" ? (S.theme.colors || {})[v.slice(1)] || v : v);
+
+function usageChips(list) {
+  if (!list || !list.length) return h("span", { class: "small muted" }, "안 쓰임");
+  const n = list[list.length - 1], sids = list.slice(0, -1);
+  return h("span", { class: "small" }, `${n}개 · `, sids.map((sid) => h("a", { href: "#", class: "kitlink", onclick: (e) => { e.preventDefault(); S.cur = sid; S.frame = 0; setView("sections"); } }, sid + " ")));
+}
+
+function renderKit() {
+  const root = $("#kitRoot");
+  if (!root) return;
+  const T = S.theme, U = S.kitUsage || {};
+  applyKitTheme(T);   // 부품 썸네일도 키트 값(색·간격)으로
+  root.innerHTML = "";
+  const head = h("div", { class: "card kithead" },
+    h("h2", { style: { margin: 0 } }, "디자인 키트"),
+    h("span", { class: "small muted" }, "모든 장표의 공통 양식(제목 크기·위치, 박스 색, 칩, 애니메이션, 연출 부품)이 여기를 거칩니다. 바꾸면 그 양식을 쓰는 모든 섹션 미리보기에 바로 반영되고, 영상은 '전체 보기 → 합본 다시 만들기'로 갱신합니다."),
+    h("span", { class: "spacer" }), h("span", { class: "small", id: "kitSave" }, "v" + (T.version || 1)));
+  root.append(head);
+
+  // 1) 색
+  const colors = h("div", { class: "card kitsec" }, h("h3", {}, "색"),
+    h("div", { class: "kitcolors" }, Object.entries(T.colors || {}).map(([k, v]) => h("label", { class: "kitcolor" },
+      h("input", { type: "color", value: v, oninput: (e) => { T.colors[k] = e.target.value; kitChanged(false); }, onchange: () => renderKit() }),
+      h("div", {}, h("b", {}, k), h("div", { class: "small muted" }, (T.colorLabels || {})[k] || ""), h("div", { class: "mono" }, v))))));
+  root.append(colors);
+
+  // 2) 글자 양식
+  const rows = Object.entries(T.styles || {}).map(([k, st]) => {
+    const f = st.font || {};
+    const set = (patch, isFont = true) => { if (isFont) st.font = Object.assign({}, st.font, patch); else Object.assign(st, patch); kitChanged(); };
+    const prev = h("div", { class: "kitprev", style: {
+      fontFamily: `"${f.family || "Pretendard"}", PretendardUI, sans-serif`, fontWeight: f.weight, fontSize: Math.min(64, (f.size || 40) * 0.5) + "px",
+      color: colorOf(f.color), background: colorOf(st.fill) || ((f.color || "").includes("white") ? "#203260" : "transparent"),
+      borderRadius: (st.radius || 0) * 0.5 + "px", letterSpacing: (f.letterSpacing || 0) * 0.5 + "px", textAlign: f.align || "left" } }, st.label || k);
+    return h("tr", {},
+      h("td", {}, h("b", {}, k), h("div", { class: "small muted" }, st.label || ""), st.idea ? h("div", { class: "small kitidea" }, "💡 " + st.idea) : null),
+      h("td", { style: { width: "34%" } }, prev),
+      h("td", {}, h("input", { type: "number", value: f.size, style: { width: "64px" }, onchange: (e) => set({ size: +e.target.value }) }), h("div", { class: "small muted" }, "크기")),
+      h("td", {}, h("select", { onchange: (e) => set({ weight: +e.target.value }) }, [500, 600, 700].map((w) => h("option", { value: w, selected: w === f.weight }, w))), h("div", { class: "small muted" }, "굵기")),
+      h("td", {}, h("select", { onchange: (e) => set({ color: "$" + e.target.value }) }, COLOR_OPTS().map((c) => h("option", { value: c, selected: f.color === "$" + c }, c))), h("div", { class: "small muted" }, "글자색")),
+      h("td", {}, st.fill !== undefined ? h("select", { onchange: (e) => set({ fill: "$" + e.target.value }, false) }, COLOR_OPTS().map((c) => h("option", { value: c, selected: st.fill === "$" + c }, c))) : h("span", { class: "small muted" }, "-"), h("div", { class: "small muted" }, "박스색")),
+      h("td", {}, st.y !== undefined ? h("div", { class: "row" },
+        h("input", { type: "number", value: st.x, title: "x", style: { width: "58px" }, onchange: (e) => set({ x: +e.target.value }, false) }),
+        h("input", { type: "number", value: st.y, title: "y", style: { width: "58px" }, onchange: (e) => set({ y: +e.target.value }, false) })) : h("span", { class: "small muted" }, "장면마다"), h("div", { class: "small muted" }, "위치 x·y")),
+      h("td", {}, usageChips((U.styles || {})[k])));
+  });
+  root.append(h("div", { class: "card kitsec" }, h("h3", {}, "글자 양식"),
+    h("table", { class: "tbl kittbl" }, h("thead", {}, h("tr", {}, ["양식", "미리보기", "", "", "", "", "", "쓰인 곳"].map((x) => h("th", {}, x)))), h("tbody", {}, rows))));
+
+  // 3) 애니메이션 양식
+  const mrows = Object.entries(T.motion || {}).map(([k, mo]) => {
+    const set = (patch) => { Object.assign(mo, patch); kitChanged(); };
+    const box = h("div", { class: "kitmbox" }, "Aa");
+    const play = () => {
+      const el = { t: { in: 0, out: 9999, enter: mo.enter, enterDur: mo.enterDur || 12, exit: "none", exitDur: 10, emphasis: [] } };
+      let f = 0; const step = () => { const st = stateAt(el, f); box.style.opacity = st.opacity; box.style.transform = transformOf(st, 0.5); box.style.clipPath = st.clipR ? `inset(0 ${st.clipR}% 0 0)` : ""; if (f++ < (mo.enterDur || 12) + 15) requestAnimationFrame(step); };
+      step();
+    };
+    return h("tr", {},
+      h("td", {}, h("b", {}, k), h("div", { class: "small muted" }, mo.label || "")),
+      h("td", {}, h("select", { onchange: (e) => set({ enter: e.target.value }) }, Object.entries(ENTER_EFFECTS).map(([v, n]) => h("option", { value: v, selected: v === mo.enter }, n)))),
+      h("td", {}, h("input", { type: "number", value: mo.enterDur, style: { width: "58px" }, onchange: (e) => set({ enterDur: +e.target.value }) }), h("span", { class: "small muted" }, " f")),
+      h("td", {}, h("select", { onchange: (e) => set({ exit: e.target.value }) }, Object.entries(EXIT_EFFECTS).map(([v, n]) => h("option", { value: v, selected: v === mo.exit }, n)))),
+      h("td", {}, h("input", { type: "number", value: mo.exitDur, style: { width: "58px" }, onchange: (e) => set({ exitDur: +e.target.value }) }), h("span", { class: "small muted" }, " f")),
+      h("td", {}, h("div", { class: "row" }, h("button", { class: "ghost small", onclick: play }, "▶"), box)));
+  });
+  root.append(h("div", { class: "card kitsec" }, h("h3", {}, "애니메이션 양식"),
+    h("div", { class: "small muted", style: { marginBottom: "6px" } }, "30f = 1초. 등장 모션은 1.5초(45f) 안에 끝나게. 장면이 바뀔 때 이전 화두는 '퇴장'으로 사라집니다."),
+    h("table", { class: "tbl kittbl" }, h("thead", {}, h("tr", {}, ["양식", "등장", "길이", "퇴장", "길이", "미리보기"].map((x) => h("th", {}, x)))), h("tbody", {}, mrows))));
+
+  // 3b) 섹션 전환 (@remotion/transitions — 합본 때 경계마다 적용)
+  root.append(kitTransitions(T));
+  root.append(kitBeatAccent(T));
+  root.append(kitMilestones(T));
+
+  // 4) 연출 부품
+  const comps = Object.entries(T.components || {}).map(([k, c]) => {
+    const demo = KIT_DEMOS[k];
+    let thumb;
+    if (demo) {
+      const svg = diagramSVG(Object.assign({ kind: k }, resolveColors({ w: demo.w, h: demo.h, props: demo.props }, T.colors)), 100000);
+      thumb = h("div", { class: "kitthumb" }, h("div", { style: { width: demo.w + "px", height: demo.h + "px", transform: `scale(${Math.min(320 / demo.w, 180 / demo.h)})`, transformOrigin: "0 0" }, html: svg }));
+    } else if (k === "broll") thumb = h("div", { class: "kitthumb", html: brollSVG({ w: 1920, h: 1080, slot: "장면 묘사", query: "query" }, 0, 100).replace("<svg ", '<svg style="width:320px;height:180px" ') });
+    else thumb = h("div", { class: "kitthumb ph" }, "3D");
+    const params = c.params ? h("div", { class: "kitparams" }, Object.entries(c.params).map(([pk, pv]) => h("label", { class: "small" },
+      ((c.paramLabels || {})[pk] || pk) + " ",
+      h("input", { type: "number", value: pv, style: { width: "64px" }, onchange: (e) => { c.params[pk] = +e.target.value; kitChanged(); } })))) : null;
+    return h("div", { class: "kitcomp" }, thumb, h("b", {}, c.label || k), h("div", { class: "mono small muted" }, k), h("div", { class: "small kitidea" }, "💡 " + (c.idea || "")), params, usageChips((U.kinds || {})[k]));
+  });
+  root.append(h("div", { class: "card kitsec" }, h("h3", {}, "연출 부품"),
+    h("div", { class: "small muted", style: { marginBottom: "6px" } }, "부품 사용법·props: 플러그인 templates/module2/remotion/DIRECTION_KIT.md. 부품 색도 위 '색'을 따릅니다."),
+    h("div", { class: "kitcomps" }, comps)));
+
+  // 5) 양식을 안 쓰는 글자
+  const raw = Object.entries(U.unstyled_text || {});
+  root.append(h("div", { class: "card kitsec" }, h("h3", {}, "양식을 쓰지 않는 글자 요소"),
+    raw.length ? h("div", { class: "small" }, "아래 섹션의 글자 요소는 값을 직접 갖고 있어 키트를 바꿔도 따라오지 않습니다(한 번만 쓰는 특수 글자). 공통으로 만들 것은 에이전트에게 양식으로 옮겨 달라고 하세요: ",
+      raw.map(([sid, n]) => h("a", { href: "#", class: "kitlink", onclick: (e) => { e.preventDefault(); S.cur = sid; S.frame = 0; setView("sections"); } }, `${sid}(${n}) `)))
+      : h("div", { class: "small muted" }, "없음 — 모든 글자가 키트 양식을 씁니다.")));
+}
+
+const TR_TYPES = { fade: "페이드", slide: "밀어내기", wipe: "닦아내기", flip: "뒤집기", clockWipe: "시계방향 닦아내기", iris: "원으로 열리기", none: "전환 없음" };
+const TR_DIRS = { "from-right": "오른쪽에서", "from-left": "왼쪽에서", "from-bottom": "아래에서", "from-top": "위에서" };
+
+// 전환 미리보기: A(앞 섹션) → B(다음 섹션)를 진행률 p(0~1)로 그린다 (렌더의 @remotion/transitions와 같은 모양을 근사)
+function trPaint(a, b, t, p) {
+  const dir = t.direction || "from-right";
+  const v = { "from-right": [1, 0], "from-left": [-1, 0], "from-bottom": [0, 1], "from-top": [0, -1] }[dir] || [1, 0];
+  a.style.cssText = b.style.cssText = "";
+  a.style.opacity = b.style.opacity = 1;
+  if (t.type === "none") { b.style.opacity = p < 0.5 ? 0 : 1; return; }
+  if (t.type === "fade") { b.style.opacity = p; return; }
+  if (t.type === "slide") { a.style.transform = `translate(${-v[0] * p * 100}%,${-v[1] * p * 100}%)`; b.style.transform = `translate(${v[0] * (1 - p) * 100}%,${v[1] * (1 - p) * 100}%)`; return; }
+  if (t.type === "wipe") {
+    const q = (1 - p) * 100;
+    b.style.clipPath = { "from-right": `inset(0 0 0 ${q}%)`, "from-left": `inset(0 ${q}% 0 0)`, "from-bottom": `inset(${q}% 0 0 0)`, "from-top": `inset(0 0 ${q}% 0)` }[dir];
+    return;
+  }
+  if (t.type === "flip") {
+    const ax = v[1] ? "X" : "Y", s = v[0] || v[1];
+    if (p < 0.5) { a.style.transform = `perspective(600px) rotate${ax}(${s * p * 180}deg)`; b.style.opacity = 0; }
+    else { a.style.opacity = 0; b.style.transform = `perspective(600px) rotate${ax}(${s * (p - 1) * 180}deg)`; }
+    return;
+  }
+  if (t.type === "clockWipe") { b.style.webkitMaskImage = b.style.maskImage = `conic-gradient(#000 ${p * 360}deg, transparent ${p * 360}deg)`; return; }
+  if (t.type === "iris") { b.style.clipPath = `circle(${p * 75}% at 50% 50%)`; }
+}
+
+function trPreview(t) {
+  const a = h("div", { class: "trA" }, "앞 섹션"), b = h("div", { class: "trB" }, "다음 섹션");
+  const box = h("div", { class: "trbox" }, a, b);
+  trPaint(a, b, t, 0);
+  const play = () => {
+    const n = Math.max(1, t.frames || 15); let f = -15;
+    const step = () => { const p = Math.min(1, Math.max(0, f / n)); trPaint(a, b, t, p); if (f++ < n + 20) setTimeout(step, 1000 / 30); };
+    step();
+  };
+  return h("div", { class: "row" }, h("button", { class: "ghost small", onclick: play }, "▶"), box);
+}
+
+function kitTransitions(T) {
+  const TC = T.transitions = T.transitions || { enabled: true, default: { type: "fade", frames: 15 }, chapter: { type: "wipe", direction: "from-right", frames: 18 }, sections: {} };
+  TC.sections = TC.sections || {};
+  const row = (label, sub, t, onDel) => {
+    const set = (patch) => { Object.assign(t, patch); kitChanged(); };
+    const dirOn = ["slide", "wipe", "flip"].includes(t.type);
+    return h("tr", {},
+      h("td", {}, h("b", {}, label), h("div", { class: "small muted" }, sub)),
+      h("td", {}, h("select", { onchange: (e) => set({ type: e.target.value }) }, Object.entries(TR_TYPES).map(([v, n]) => h("option", { value: v, selected: v === t.type }, n)))),
+      h("td", {}, dirOn ? h("select", { onchange: (e) => set({ direction: e.target.value }) }, Object.entries(TR_DIRS).map(([v, n]) => h("option", { value: v, selected: v === (t.direction || "from-right") }, n))) : h("span", { class: "small muted" }, "-")),
+      h("td", {}, h("input", { type: "number", min: 0, max: 24, value: t.frames, style: { width: "58px" }, onchange: (e) => set({ frames: Math.max(0, Math.min(24, +e.target.value)) }) }), h("span", { class: "small muted" }, " f")),
+      h("td", {}, h("select", { onchange: (e) => set({ timing: e.target.value }) }, [["linear", "일정"], ["spring", "부드럽게"]].map(([v, n]) => h("option", { value: v, selected: v === (t.timing || "linear") }, n)))),
+      h("td", {}, trPreview(t)),
+      h("td", {}, onDel ? h("button", { class: "ghost small", onclick: onDel }, "삭제") : null));
+  };
+  const rows = [
+    row("기본", "모든 섹션 경계", TC.default = TC.default || { type: "fade", frames: 15 }),
+    row("챕터 시작", "챕터 간지로 시작하는 섹션으로 들어갈 때", TC.chapter = TC.chapter || { type: "wipe", direction: "from-right", frames: 18 }),
+    ...Object.entries(TC.sections).map(([sid, t]) => row(sid + "로 들어갈 때", "이 섹션만 따로", t, () => { delete TC.sections[sid]; kitChanged(); })),
+  ];
+  const secs = ((S.project && S.project.sections) || []).map((s) => s.id).filter((sid) => !TC.sections[sid]);
+  const add = h("select", { onchange: (e) => { if (!e.target.value) return; TC.sections[e.target.value] = Object.assign({}, TC.default); kitChanged(); } },
+    h("option", { value: "" }, "+ 섹션별로 따로 정하기"), secs.map((sid) => h("option", { value: sid }, sid)));
+  return h("div", { class: "card kitsec" }, h("h3", {}, "섹션 전환"),
+    h("div", { class: "row" },
+      h("label", { class: "small" }, h("input", { type: "checkbox", checked: TC.enabled !== false, onchange: (e) => { TC.enabled = e.target.checked; kitChanged(); } }), " 섹션 사이에 전환 넣기"),
+      h("span", { class: "small muted" }, "합본 때 경계마다 적용(@remotion/transitions). 섹션 다시 렌더는 필요 없고 '전체 보기 → 합본 다시 만들기'만 하면 됩니다. 길이는 최대 24f(0.8초) — 앞 섹션 끝 무음 안에서만 겹칩니다.")),
+    h("table", { class: "tbl kittbl" }, h("thead", {}, h("tr", {}, ["경계", "전환", "방향", "길이", "속도", "미리보기", ""].map((x) => h("th", {}, x)))), h("tbody", {}, rows)),
+    add);
+}
+
+function kitBeatAccent(T) {
+  const B = T.beatAccent = Object.assign({ enabled: true, types: ["pulse", "lift", "bounce"], delay: 8, dur: 22, every: 120, window: 24 }, T.beatAccent || {});
+  const num = (k, label, unit) => h("label", { class: "small" }, label + " ", h("input", { type: "number", value: B[k], style: { width: "64px" }, onchange: (e) => { B[k] = +e.target.value; kitChanged(); } }), unit ? " " + unit : "");
+  const box = h("div", { class: "kitmbox" }, "Aa");
+  const play = () => {
+    const el = { w: 200, h: 100, t: { in: 0, out: 9999, enter: "none", enterDur: 1, exit: "none", exitDur: 1, emphasis: B.types.map((t, i) => ({ type: t, at: 10 + i * (B.dur + 14), dur: B.dur })) } };
+    let f = 0; const step = () => { const st = stateAt(el, f); box.style.transform = transformOf(st, 0.5); if (f++ < 10 + B.types.length * (B.dur + 14)) requestAnimationFrame(step); };
+    step();
+  };
+  return h("div", { class: "card kitsec" }, h("h3", {}, "비트마다 움직임 (자동 강조)"),
+    h("div", { class: "small muted", style: { marginBottom: "6px" } }, "문장이 시작될 때·긴 문장은 일정 간격마다 화면에 변화가 없으면, 지금 화면의 주인공 요소(가장 큰 도표·글자)에 작은 강조를 자동으로 겁니다. 요소에 noAccent:true면 제외."),
+    h("div", { class: "row" },
+      h("label", { class: "small" }, h("input", { type: "checkbox", checked: B.enabled !== false, onchange: (e) => { B.enabled = e.target.checked; kitChanged(); } }), " 켜기"),
+      h("label", { class: "small" }, "강조 순서 ", h("input", { value: B.types.join(","), style: { width: "220px" }, title: Object.entries(EMPHASIS).map(([k, v]) => k + "=" + v).join(" "),
+        onchange: (e) => { B.types = e.target.value.split(",").map((x) => x.trim()).filter((x) => EMPHASIS[x]); kitChanged(); } })),
+      num("delay", "문장 시작 뒤", "f"), num("dur", "길이", "f"), num("every", "긴 문장 간격", "f"),
+      h("button", { class: "ghost small", onclick: play }, "▶"), box),
+    h("div", { class: "small muted" }, "강조 종류: " + Object.entries(EMPHASIS).map(([k, v]) => `${k}(${v})`).join(" · ")));
+}
+
+function kitMilestones(T) {
+  const M = T.milestones = Object.assign({ enabled: true, height: 64, hideOpening: true, hideEnding: false }, T.milestones || {});
+  const chs = (S.project && S.project.project && S.project.project.milestones) || [];
+  return h("div", { class: "card kitsec" }, h("h3", {}, "마일스톤 바 (영상 위 큰 챕터)"),
+    h("div", { class: "row" },
+      h("label", { class: "small" }, h("input", { type: "checkbox", checked: M.enabled !== false, onchange: (e) => { M.enabled = e.target.checked; kitChanged(); } }), " 영상 맨 위에 표시"),
+      h("label", { class: "small" }, h("input", { type: "checkbox", checked: !!M.hideOpening, onchange: (e) => { M.hideOpening = e.target.checked; kitChanged(); } }), " 오프닝에서는 숨김"),
+      h("label", { class: "small" }, h("input", { type: "checkbox", checked: !!M.hideEnding, onchange: (e) => { M.hideEnding = e.target.checked; kitChanged(); } }), " 마무리에서는 숨김"),
+      ["fill", "on", "off", "track"].map((k) => h("label", { class: "small" }, ({ fill: "진행색", on: "지금 챕터", off: "다른 챕터", track: "바탕선" })[k] + " ",
+        h("select", { onchange: (e) => { M[k] = "$" + e.target.value; kitChanged(); } }, COLOR_OPTS().map((c) => h("option", { value: c, selected: M[k] === "$" + c }, c)))))),
+    h("div", { class: "small muted", style: { marginTop: "6px" } }, chs.length
+      ? "챕터: " + chs.map((c) => `${c.title}(${(c.sections || []).join("·")}${c.steps ? `, 단계 ${c.steps.length}` : ""})`).join("  →  ") + " — 묶음은 project.json milestones에서 정합니다(에이전트에게 요청)."
+      : "project.json에 milestones(큰 챕터 묶음)가 없어 표시되지 않습니다."),
+    h("div", { class: "small muted" }, "합본 때 겹칩니다(섹션 재렌더 불필요). 섹션 제목은 이 띠 아래(y 90 이상)에 둡니다 — 배치 검사가 확인합니다."));
+}
+
+// ================================================================== 연출안 (director) + 연출 검수
+// 장표를 만들기 전에 영상 전체 연출안(00-direction/direction.md)을 사용자가 보고 승인한다.
+// 아래 검수 결과는 direction_check.py와 같은 규칙 — 오류가 있으면 최종 렌더가 막힌다.
+async function refreshDirBadge() {
+  try {
+    const d = await api("GET", "/api/direction");
+    const b = $("#dirBadge");
+    if (!b) return;
+    b.textContent = !d.exists || d.template ? "없음" : d.approved_current ? "승인" : "미승인";
+    b.className = "badge " + (d.approved_current ? "ok" : "bad");
+    return d;
+  } catch (e) { return null; }
+}
+
+async function viewDirection(app) {
+  const d = await refreshDirBadge();
+  if (!d) { app.append(h("div", { class: "card empty" }, "연출안을 불러오지 못했습니다.")); return; }
+  const c = d.check, byLevel = (lv) => c.issues.filter((x) => x.level === lv);
+  app.append(h("div", { class: "dirgrid" },
+    h("section", { class: "card guidebox" },
+      h("div", { class: "row" },
+        h("h2", { style: { margin: 0 } }, "연출안"),
+        h("span", { class: "chip " + (d.approved_current ? "locked" : "needs_user") }, d.approved_current ? `승인됨 · ${d.approved.approved_at.replace("T", " ")}` : d.approved.approved_at ? "승인 뒤 바뀜 — 다시 승인 필요" : "미승인"),
+        h("span", { class: "spacer" }),
+        h("button", {
+          class: "primary", disabled: !d.exists || d.template || d.approved_current,
+          title: "이 연출안대로 섹션을 설계하도록 승인합니다. 연출안이 바뀌면 다시 승인해야 합니다.",
+          onclick: async () => {
+            if (!confirm("이 연출안을 승인할까요? 에이전트가 이대로 섹션별 장표를 설계합니다.")) return;
+            try { await api("POST", "/api/direction/approve"); toast("연출안을 승인했어요."); setView("direction"); } catch (e) { toast(e.message, 5000); }
+          },
+        }, d.approved_current ? "승인됨" : "연출안 승인")),
+      !d.exists ? h("div", { class: "empty" }, "아직 연출안이 없습니다. 에이전트(director)가 00-direction/direction.md를 먼저 써야 합니다.")
+        : d.template ? h("div", { class: "empty" }, "연출안이 템플릿 그대로입니다. 에이전트가 채운 뒤 다시 보세요.")
+          : h("div", { class: "md", html: md(d.text) })),
+    h("aside", { class: "card", style: { padding: "14px" } },
+      h("h3", { style: { marginTop: 0 } }, "연출 검수"),
+      h("div", { class: "row small" },
+        h("span", { class: "chip " + (c.ok ? "locked" : "needs_user") }, c.ok ? "통과" : `오류 ${c.errors}`),
+        h("span", { class: "chip open" }, `경고 ${c.warnings}`)),
+      h("div", { class: "small muted", style: { margin: "6px 0 10px" } }, "오류가 있으면 최종 렌더가 막힙니다 (초안 렌더는 가능)."),
+      h("div", { class: "small", style: { marginBottom: "8px" } }, "장치 사용: ", Object.entries(c.devices).map(([k, v]) => h("span", { class: "chip", style: { margin: "2px" } }, `${k} ${v}`))),
+      ["error", "warn"].map((lv) => byLevel(lv).map((x) => h("div", { class: "dirissue " + lv, onclick: x.section ? () => { S.cur = x.section; S.frame = 0; setView("sections"); } : null, title: x.section ? "이 섹션 열기" : "" },
+        h("b", {}, (lv === "error" ? "오류 " : "경고 ") + (x.section || "전체")), " ", x.msg))))));
+}
+
+// ================================================================== 전체 보기 (합본 이어보기)
+// final/master.mp4(없으면 master_draft.mp4)를 재생하고, 섹션 챕터로 이동한다.
+// 챕터 시작 = 앞 섹션 timeline.duration 합 (assemble.py와 같은 기준).
+const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+
+async function viewFull(app) {
+  app.append(h("div", { class: "fullgrid" },
+    h("section", {},
+      h("div", { class: "card fullhead", id: "fullHead" }),
+      h("div", { class: "card stagecard" },
+        h("div", { id: "fullPlayer", class: "fullplayer" }),
+        h("div", { class: "row small", id: "fullNow", style: { marginTop: "8px" } }))),
+    h("aside", { class: "card seclist", id: "fullList" })));
+  S.full = await api("GET", "/api/full");
+  buildFullPlayer();
+  renderFullHead();
+  renderFullList();
+}
+
+function fullVideo() { return $("#fullVid"); }
+
+function buildFullPlayer() {
+  const box = $("#fullPlayer");
+  if (!box) return;
+  const f = S.full.file;
+  const keep = fullVideo() ? fullVideo().currentTime : 0;
+  box.innerHTML = "";
+  if (!f) {
+    box.append(h("div", { class: "empty" }, "아직 합본 영상이 없습니다. 위의 '합본 만들기'를 누르면 섹션 렌더 후 이어 붙입니다."));
+    return;
+  }
+  const v = h("video", { id: "fullVid", src: f.url, controls: true, preload: "auto", style: { width: "100%", display: "block", background: "#000", borderRadius: "8px" } });
+  v.addEventListener("loadedmetadata", () => { if (keep) v.currentTime = Math.min(keep, v.duration - 0.1); });
+  v.addEventListener("timeupdate", markFullNow);
+  box.append(v);
+}
+
+function fullCurrent() {
+  const v = fullVideo();
+  if (!v || !S.full) return null;
+  const fr = v.currentTime * S.full.fps;
+  return S.full.sections.find((s) => fr >= s.start && fr < s.start + s.duration) || S.full.sections[S.full.sections.length - 1];
+}
+
+function markFullNow() {
+  const cur = fullCurrent();
+  const v = fullVideo();
+  document.querySelectorAll("#fullList .item").forEach((el) => el.classList.toggle("on", !!cur && el.dataset.sid === cur.id));
+  const now = $("#fullNow");
+  if (!now || !cur || !v) return;
+  const n = S.full.sections.indexOf(cur) + 1;
+  now.innerHTML = "";
+  put(now,
+    h("b", {}, `${String(n).padStart(2, "0")} ${cur.title}`),
+    h("span", { class: "muted" }, `${mmss(v.currentTime)} / ${mmss(S.full.total_frames / S.full.fps)}`),
+    h("span", { class: "spacer" }),
+    h("button", { onclick: () => { S.cur = cur.id; S.frame = 0; setView("sections"); } }, "이 섹션 리뷰하기"));
+}
+
+function renderFullHead() {
+  const box = $("#fullHead");
+  if (!box) return;
+  const f = S.full.file, j = S.full.job || {};
+  const changed = S.full.sections.filter((s) => s.changed);
+  const running = j.state === "running";
+  box.innerHTML = "";
+  put(box,
+    h("h2", {}, "전체 보기"),
+    f ? h("span", { class: "chip" }, f.draft ? "초안 합본" : "합본") : null,
+    f ? h("span", { class: "small muted" }, `${f.name} · ${f.made.replace("T", " ")} · ${mmss(S.full.total_frames / S.full.fps)}`) : null,
+    h("span", { class: "spacer" }),
+    running ? h("span", { class: "small" }, j.step || "진행 중") : null,
+    j.state === "failed" ? h("span", { class: "chip needs_user", title: j.log }, "합본 실패 — 마우스를 올려 원인 보기") : null,
+    h("button", {
+      class: changed.length || !f ? "primary" : "", disabled: running,
+      title: "렌더가 없거나 편집 뒤 다시 렌더해야 하는 섹션만 최종 렌더한 뒤 전체를 이어 붙입니다.",
+      onclick: async () => {
+        try { await api("POST", "/api/full/build"); S.full.job = { state: "running", step: "준비 중" }; renderFullHead(); toast("합본을 다시 만들기 시작했어요. 바뀐 섹션만 렌더합니다."); }
+        catch (e) { toast(e.message); }
+      },
+    }, running ? "만드는 중…" : f ? "합본 다시 만들기" : "합본 만들기"));
+  const ck = S.full.check || {};
+  if (ck.errors) {
+    box.append(h("div", { class: "small fullwarn" }, `연출 검수 오류 ${ck.errors}건 — 이 합본은 연출 기준을 통과하지 못한 상태입니다. `,
+      h("a", { href: "#direction", onclick: (e) => { e.preventDefault(); setView("direction"); } }, "연출안 탭에서 보기")));
+  }
+  if (changed.length && f) {
+    box.append(h("div", { class: "small fullwarn" },
+      `합본에 아직 반영되지 않은 섹션 ${changed.length}개: `,
+      changed.map((s) => `${s.id}(${s.changed})`).join(", ")));
+  }
+}
+
+function renderFullList() {
+  const box = $("#fullList");
+  if (!box) return;
+  box.innerHTML = "";
+  S.full.sections.forEach((s, i) => {
+    box.append(h("div", {
+      class: "item", "data-sid": s.id, title: "이 지점부터 재생",
+      onclick: () => { const v = fullVideo(); if (!v) return; v.currentTime = s.start / S.full.fps + 0.01; v.play().catch(() => {}); },
+    },
+      h("div", { class: "t" }, h("span", { class: "n" }, String(i + 1).padStart(2, "0")), s.title),
+      h("div", { class: "meta" },
+        h("span", { class: "chip" }, mmss(s.start / S.full.fps)),
+        h("span", { class: "chip" }, sec(s.duration, S.full.fps)),
+        s.changed ? h("span", { class: "chip open" }, s.changed) : null)));
+  });
+  markFullNow();
+}
+
+async function pollFull() {
+  if (!$("#fullHead")) return;
+  const before = S.full;
+  S.full = await api("GET", "/api/full");
+  const wasRunning = before && before.job && before.job.state === "running";
+  if (wasRunning && S.full.job.state !== "running") {
+    toast(S.full.job.state === "done" ? "합본을 새로 만들었어요." : "합본 실패: " + (S.full.job.log || "").slice(-200), 6000);
+  }
+  if (JSON.stringify(before && before.file) !== JSON.stringify(S.full.file)) buildFullPlayer();
+  renderFullHead();
+  renderFullList();
+}
+
 // ================================================================== 안내
 function viewGuide(app) {
   app.append(h("div", { class: "card guidebox" },
@@ -1302,6 +1814,7 @@ function viewGuide(app) {
       h("li", {}, h("b", {}, "직접 고치기"), " — '편집 모드'를 켜고 요소를 끌어 위치, 모서리로 크기, 오른쪽 패널에서 폰트·색·등장/퇴장 효과를 바꿉니다. 타임라인 탭에서 막대를 끌어 나오는 타이밍을 조절합니다. 바꾼 숫자는 그대로 영상에 들어갑니다."),
       h("li", {}, h("b", {}, "말로 고치기"), " — 직접 고치기 어려운 건 코멘트로 남깁니다. 위치·크기·폰트·타이밍·효과·이미지 넣기·영상으로 대체·문구·자유 의견 중 유형을 고르고, 필요하면 이미지나 영상을 첨부합니다."),
       h("li", {}, h("b", {}, "수정 요청 보내기"), " — 섹션 상단 버튼을 누른 뒤 Claude에게 \"수정 요청 보냈어\"라고 말하면, 요청이 있는 섹션마다 서브에이전트가 하나씩 붙어 고칩니다. 끝나면 섹션이 '수정됨·확인 필요'로 바뀝니다."),
+      h("li", {}, h("b", {}, "전체 보기"), " — 상단 '전체 보기'에서 합본 영상을 처음부터 끝까지 이어서 봅니다. 오른쪽 목록을 누르면 그 섹션으로 건너뛰고, '이 섹션 리뷰하기'로 바로 고치러 갈 수 있습니다. 섹션을 고친 뒤 '합본 다시 만들기'를 누르면 바뀐 섹션만 다시 렌더해 이어 붙입니다."),
       h("li", {}, h("b", {}, "확인과 잠금"), " — 수정본을 다시 보고, 마음에 들면 '섹션 잠금'을 누릅니다. 잠긴 섹션은 에이전트가 건드리지 않습니다. 이전 버전으로 되돌릴 수도 있습니다."),
       h("li", {}, h("b", {}, "계정 연결"), " — HeyGen과 ElevenLabs 키를 넣고 연결 테스트를 합니다. 클론 보이스가 없으면 녹음기로 샘플을 녹음합니다.")),
     h("h3", { style: { marginTop: "16px" } }, "단축키"),

@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 """모듈2 섹션 렌더 (데이터 구동 Remotion).
 
-  render_section.py <project> <sNN|all> [--draft] [--scale 0.5] [--no-audio] [--still FRAME] [--frames A-B]
+  render_section.py <project> <sNN|all> [--draft] [--scale 0.5] [--no-audio] [--still FRAME] [--frames A-B] [--skip-check]
+
+- 최종 렌더(--draft·--still 아님)는 연출 검수 게이트(direction_check.py) 오류가 0이어야 진행한다.
 
 - 플러그인 templates/module2/remotion/ + studio/anim.js 를 <remotion>/codex-workspace/module2/ 로 동기화
   (미리보기와 렌더가 같은 anim.js를 쓰도록 매번 덮어씀. node_modules·package.json은 건드리지 않음)
@@ -51,7 +53,7 @@ def wj(p, o):
 
 
 def sync_workspace():
-    if not os.path.isdir(os.path.join(WS, "node_modules", "@remotion", "three")):
+    if not all(os.path.isdir(os.path.join(WS, "node_modules", "@remotion", x)) for x in ("three", "transitions")):
         print("3D 의존성이 없어 먼저 설치합니다 (module2_setup.py remotion).", flush=True)
         import module2_setup
         module2_setup.setup_three(REMOTION)
@@ -107,6 +109,43 @@ def collect_fonts(P, merged_families):
     return out, missing
 
 
+def load_theme(P):
+    """디자인 키트: 프로젝트 design/theme.json (없으면 플러그인 템플릿)"""
+    for p in (os.path.join(P, "design", "theme.json"), os.path.join(TPL, "theme.json")):
+        t = rj(p)
+        if t:
+            return t
+    return None
+
+
+def theme_hash(P, sid=None):
+    """섹션 그림에 영향을 주는 키트 부분만의 지문.
+    - 제외: 섹션 전환(transitions)·version·설명 글(label·idea) → 이것만 바꾸면 섹션 재렌더 불필요
+    - sid를 주면 그 섹션이 쓰는 글자 양식·애니메이션 양식·부품만 → 다른 섹션 양식을 바꿔도 이 섹션은 그대로"""
+    import hashlib
+    t = dict(load_theme(P) or {})
+    for k in ("transitions", "milestones", "version", "_note", "colorLabels"):
+        t.pop(k, None)
+    if sid:
+        lay = rj(os.path.join(P, "sections", sid, "layout.json"), {}) or {}
+        tl = rj(os.path.join(P, "sections", sid, "timeline.json"), {}) or {}
+        els = lay.get("elements") or []
+        used = {e.get("style") for e in els if e.get("style")} | {(tl.get("elements") or {}).get(e.get("id"), {}).get("preset") for e in els}
+        kinds = {e.get("kind") for e in els if e.get("type") == "diagram"}
+        t["styles"] = {k: v for k, v in (t.get("styles") or {}).items() if k in used}
+        t["motion"] = {k: v for k, v in (t.get("motion") or {}).items() if k in used}
+        t["components"] = {k: v for k, v in (t.get("components") or {}).items() if k in kinds}
+
+    def strip(v):   # 설명 글(label·idea 등)은 그림과 무관
+        if isinstance(v, dict):
+            return {k: strip(x) for k, x in v.items() if k not in ("label", "idea", "_idea", "paramLabels") and not k.startswith("_")}
+        if isinstance(v, list):
+            return [strip(x) for x in v]
+        return v
+    t = strip(t)
+    return hashlib.sha1(json.dumps(t, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()[:12]
+
+
 def section_props(P, sid, draft, with_audio):
     d = os.path.join(P, "sections", sid)
     layout = rj(os.path.join(d, "layout.json"), {"elements": []})
@@ -119,11 +158,11 @@ def section_props(P, sid, draft, with_audio):
         if f.get("family"):
             fams.add((f["family"], int(f.get("weight", 400))))
         # 아직 없는 영상·아바타 파일 표시 (최종 렌더에서 빈 화면 방지용 경고)
-        if e.get("type") in ("video", "avatar") and e.get("src"):
+        if e.get("type") in ("video", "avatar", "broll") and e.get("src"):
             sp = e["src"] if e["src"].startswith(("global_assets/", "sections/")) else "sections/%s/%s" % (sid, e["src"])
             e["srcExists"] = os.path.exists(os.path.join(P, sp))
     for e in layout.get("elements", []):
-        if e.get("type") in ("video", "avatar") and e.get("src"):
+        if e.get("type") in ("video", "avatar", "broll") and e.get("src"):
             sp = e["src"] if e["src"].startswith(("global_assets/", "sections/")) else "sections/%s/%s" % (sid, e["src"])
             e["srcExists"] = os.path.exists(os.path.join(P, sp))
     fonts, missing = collect_fonts(P, fams)
@@ -138,7 +177,7 @@ def section_props(P, sid, draft, with_audio):
             if m:
                 audio.append({"src": "audio/" + fn, "at": starts.get("b" + m.group(1), 0)})
     props = {"layout": layout, "timeline": timeline, "edits": edits, "sectionDir": "sections/" + sid,
-             "fonts": fonts, "audio": audio, "withAudio": bool(with_audio and audio), "draft": draft}
+             "fonts": fonts, "audio": audio, "withAudio": bool(with_audio and audio), "draft": draft, "theme": load_theme(P)}
     return props, missing
 
 
@@ -148,7 +187,7 @@ def render(P, sid, draft=False, scale=None, with_audio=True, still=None, frames=
     os.makedirs(rd, exist_ok=True)
     props, missing = section_props(P, sid, draft, with_audio)
     for e in props["layout"]["elements"]:
-        if not draft and e.get("type") in ("video", "avatar") and e.get("srcExists") is False:
+        if not draft and e.get("type") in ("video", "avatar", "broll") and e.get("srcExists") is False:
             print("경고: %s %s 파일이 없어 최종 렌더에서 빈 칸이 됩니다 (%s)" % (sid, e["id"], e.get("src")), flush=True)
     if missing:
         print("경고: 폰트 파일을 못 찾음 → 기본 글꼴로 대체: " + ", ".join(missing), flush=True)
@@ -180,7 +219,8 @@ def render(P, sid, draft=False, scale=None, with_audio=True, still=None, frames=
         meta = rj(meta_p, {})
         meta[key] = {"state": "done" if ok else "failed", "file": os.path.relpath(out, d) if ok else None,
                      "finished": datetime.datetime.now().isoformat(timespec="seconds"), "seconds": round(time.time() - t0, 1),
-                     "version": st.get("version", 1), "scale": scale, "log": (r.stdout + r.stderr)[-1500:] if not ok else ""}
+                     "version": st.get("version", 1), "scale": scale, "log": (r.stdout + r.stderr)[-1500:] if not ok else "",
+                     "theme_hash": theme_hash(P, sid)}
         wj(meta_p, meta)
     if not quiet:
         print(("완료" if ok else "실패"), sid, os.path.relpath(out, P), "%.0fs" % (time.time() - t0), flush=True)
@@ -198,8 +238,19 @@ def main():
     ap.add_argument("--no-audio", action="store_true")
     ap.add_argument("--still", type=int)
     ap.add_argument("--frames")
+    ap.add_argument("--skip-check", action="store_true", help="연출 검수 게이트 건너뛰기 (사용자가 명시적으로 허락한 경우만)")
     a = ap.parse_args()
     P = os.path.abspath(a.project)
+    # 연출 검수 게이트: 최종 렌더(초안·정지 화면 제외)는 direction_check 오류가 0이어야 한다
+    if not a.draft and a.still is None and not a.skip_check:
+        import direction_check
+        r = direction_check.check(P)
+        if not r["ok"]:
+            for x in r["issues"]:
+                if x["level"] == "error" and (a.section == "all" or x["section"] in (None, a.section)):
+                    print("오류 %s %s: %s" % (x["section"] or "전체", x["code"], x["msg"]), flush=True)
+            if a.section == "all" or any(x["level"] == "error" and x["section"] in (None, a.section) for x in r["issues"]):
+                sys.exit("연출 검수 통과 전에는 최종 렌더를 하지 않습니다 → direction_check.py %s (초안은 --draft)" % P)
     sync_workspace()
     cfg = rj(os.path.join(P, "project.json"), {})
     sids = [s["id"] for s in cfg.get("sections", [])] if a.section == "all" else [a.section]

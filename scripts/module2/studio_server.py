@@ -28,6 +28,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import redact  # noqa: E402
 import render_section  # noqa: E402
+import direction_check  # noqa: E402
 
 RENDERING = set()
 RENDER_LOCK = threading.Lock()
@@ -158,17 +159,58 @@ def load_queue():
     return rjson(queue_path(), {"requests": []})
 
 
+def theme_path():
+    return os.path.join(P, "design", "theme.json")
+
+
+def load_theme():
+    """프로젝트 디자인 키트. 없으면 플러그인 템플릿을 복사해 만든다."""
+    tp = theme_path()
+    if not os.path.exists(tp):
+        os.makedirs(os.path.dirname(tp), exist_ok=True)
+        shutil.copy2(os.path.join(PLUGIN, "templates", "module2", "theme.json"), tp)
+    return rjson(tp, {})
+
+
+def theme_usage():
+    """어떤 양식·부품이 어느 섹션에 쓰였나 + 양식을 쓰지 않은(값 직접 지정) 글자 요소 수"""
+    cfg = project_cfg()
+    st, kinds, raw = {}, {}, {}
+    for s_ in cfg.get("sections", []):
+        sid = s_["id"]
+        lay = rjson(os.path.join(sec_dir(sid), "layout.json"), {"elements": []}) or {"elements": []}
+        for e in lay.get("elements", []):
+            if e.get("style"):
+                st.setdefault(e["style"], []).append(sid)
+            elif e.get("type") == "text":
+                raw[sid] = raw.get(sid, 0) + 1
+            if e.get("type") == "diagram":
+                kinds.setdefault(e.get("kind"), []).append(sid)
+            elif e.get("type") in ("broll", "3d"):
+                kinds.setdefault(e["type"], []).append(sid)
+    uniq = lambda d: {k: sorted(set(v)) + [len(v)] for k, v in d.items()}  # noqa: E731  마지막 값 = 요소 수
+    return {"styles": uniq(st), "kinds": uniq(kinds), "unstyled_text": raw}
+
+
 def render_info(sid):
     d = sec_dir(sid)
     meta = rjson(os.path.join(d, "render", "render.json"), {}) or {}
     src_m = max([os.path.getmtime(os.path.join(d, f)) for f in ("layout.json", "timeline.json", "edits.json") if os.path.exists(os.path.join(d, f))] or [0])
+    theme_m = os.path.getmtime(theme_path()) if os.path.exists(theme_path()) else 0
+    th = None
     out = {}
     for k, v in meta.items():
         v = dict(v)
         fp = os.path.join(d, v["file"]) if v.get("file") else None
         if fp and os.path.exists(fp):
             v["url"] = "/files/sections/%s/%s?t=%d" % (sid, v["file"], int(os.path.getmtime(fp)))
-            v["stale"] = src_m > os.path.getmtime(fp) + 1
+            # 디자인 키트를 바꾸면 모든 섹션이 다시 렌더 대상 — 단 그림에 영향 없는 부분(섹션 전환 등)만 바뀌면 제외
+            if v.get("theme_hash"):
+                th = th or render_section.theme_hash(P, sid)
+                kit_changed = v["theme_hash"] != th
+            else:
+                kit_changed = theme_m > os.path.getmtime(fp) + 1
+            v["stale"] = src_m > os.path.getmtime(fp) + 1 or kit_changed
         out[k] = v
     if sid in RENDERING:
         out.setdefault("draft", {})["state"] = "running"
@@ -191,6 +233,104 @@ def start_render(sid, draft):
     return True
 
 
+# ------------------------------------------------------------- 전체 보기 (합본)
+# 합본 = assemble.py 결과 final/master.mp4. 챕터 시작 = 앞 섹션 timeline.duration 합 (assemble.py와 같은 기준).
+FULL_JOB = {"state": "idle"}
+FULL_LOCK = threading.Lock()
+
+
+def full_info():
+    cfg = project_cfg()
+    fps = cfg.get("fps", 30)
+    master = os.path.join(P, "final", "master.mp4")
+    draft = os.path.join(P, "final", "master_draft.mp4")
+    src = master if os.path.exists(master) else (draft if os.path.exists(draft) else None)
+    src_m = os.path.getmtime(src) if src else 0
+    secs, at = [], 0
+    # 섹션 전환으로 경계마다 겹친 만큼 합본 속 시작 위치가 당겨진다 → assemble.py가 남긴 실제 위치를 쓴다
+    mj = rjson(os.path.splitext(src)[0] + ".json", {}) if src else {}
+    m_start = {x["id"]: x["start"] for x in (mj or {}).get("sections", [])}
+    for s in cfg.get("sections", []):
+        sid = s["id"]
+        d = sec_dir(sid)
+        if not os.path.isdir(d):
+            continue
+        tl = rjson(os.path.join(d, "timeline.json"), {})
+        dur = tl.get("duration", 0)
+        ri = render_info(sid).get("final") or {}
+        fp = os.path.join(d, "render", "%s.mp4" % sid)
+        rendered = os.path.exists(fp)
+        # 합본에 최신 내용이 안 들어간 이유: 섹션 최종 렌더가 없음 / 편집 후 렌더 안 함 / 렌더가 합본보다 새로움
+        why = None
+        if not rendered:
+            why = "렌더 없음"
+        elif ri.get("stale"):
+            why = "편집 후 렌더 필요"
+        elif src and os.path.getmtime(fp) > src_m + 1:
+            why = "합본 이후 렌더됨"
+        secs.append({"id": sid, "title": s.get("title", sid), "start": m_start.get(sid, at), "duration": dur, "changed": why})
+        at += dur
+    chk = direction_check.check(P)
+    out = {"fps": fps, "total_frames": (mj or {}).get("total_frames", at), "transitions": (mj or {}).get("transitions", []), "sections": secs, "job": dict(FULL_JOB),
+           "check": {"errors": chk["errors"], "warnings": chk["warnings"]}}
+    if src:
+        out["file"] = {"url": "/files/%s?t=%d" % (os.path.relpath(src, P).replace(os.sep, "/"), int(src_m)),
+                       "name": os.path.relpath(src, P).replace(os.sep, "/"), "draft": src == draft,
+                       "made": datetime.datetime.fromtimestamp(src_m).isoformat(timespec="seconds")}
+    return out
+
+
+def direction_payload():
+    p = os.path.join(P, "00-direction", "direction.md")
+    txt = open(p, encoding="utf-8").read() if os.path.exists(p) else ""
+    st = (project_cfg().get("state") or {}).get("direction") or {}
+    h = direction_check.direction_hash(P)
+    return {"exists": bool(txt.strip()), "text": txt, "template": direction_check.TEMPLATE_MARK in txt, "hash": h,
+            "approved": st, "approved_current": bool(st.get("approved_at")) and st.get("hash") == h,
+            "check": direction_check.check(P)}
+
+
+def approve_direction():
+    d = direction_payload()
+    if not d["exists"] or d["template"]:
+        raise ValueError("연출안이 없거나 템플릿 그대로라 승인할 수 없습니다.")
+    cfg = project_cfg()
+    cfg.setdefault("state", {})["direction"] = {"approved_at": now(), "hash": d["hash"]}
+    save_project_cfg(cfg)
+    return cfg["state"]["direction"]
+
+
+def start_full_build():
+    """바뀐 섹션만 최종 렌더 → assemble.py 로 합본. 진행 상태는 FULL_JOB."""
+    with FULL_LOCK:
+        if FULL_JOB.get("state") == "running":
+            return False
+        FULL_JOB.clear()
+        FULL_JOB.update({"state": "running", "started": now(), "step": "준비 중", "log": ""})
+
+    def job():
+        try:
+            todo = [s["id"] for s in full_info()["sections"] if s["changed"] in ("렌더 없음", "편집 후 렌더 필요")]
+            render_section.sync_workspace()
+            for i, sid in enumerate(todo):
+                FULL_JOB["step"] = "섹션 렌더 %s (%d/%d)" % (sid, i + 1, len(todo))
+                ok, _ = render_section.render(P, sid, draft=False, quiet=True)
+                if not ok:
+                    meta = rjson(os.path.join(sec_dir(sid), "render", "render.json"), {}) or {}
+                    raise RuntimeError("%s 렌더 실패: %s" % (sid, ((meta.get("final") or {}).get("log") or "")[-600:]))
+            FULL_JOB["step"] = "합본 만드는 중"
+            r = m2env.run([sys.executable, os.path.join(HERE, "assemble.py"), P])
+            if r.returncode != 0:
+                raise RuntimeError("assemble 실패: " + (r.stdout + r.stderr)[-800:])
+            FULL_JOB.update({"state": "done", "step": "완료", "rendered": todo, "log": r.stdout.strip()[-300:]})
+        except Exception as e:
+            FULL_JOB.update({"state": "failed", "step": "실패", "log": str(e)})
+        finally:
+            FULL_JOB["finished"] = now()
+    threading.Thread(target=job, daemon=True).start()
+    return True
+
+
 def section_summary(sid, title):
     d = sec_dir(sid)
     st = rjson(os.path.join(d, "status.json"), {"status": "draft", "version": 1, "locked": False})
@@ -202,6 +342,8 @@ def section_summary(sid, title):
     status = st.get("status", "draft")
     if st.get("locked"):
         status = "locked"
+    elif st.get("scaffold") and status == "draft" and not open_c:
+        status = "scaffold"
     elif status in ("draft", "revised") and open_c:
         status = "commented"
     modes = sorted({b.get("mode", "slide") for b in (bm or {"beats": beats})["beats"]})
@@ -217,7 +359,9 @@ def project_payload():
     secs = [section_summary(s["id"], s.get("title", s["id"])) for s in cfg.get("sections", []) if os.path.isdir(sec_dir(s["id"]))]
     m = redact.load_map(P)
     q = load_queue()
-    return {"project": {k: cfg.get(k) for k in ("title", "fps", "canvas", "target_minutes", "state", "module")},
+    vc = cfg.get("voice") or {}
+    return {"project": {k: cfg.get(k) for k in ("title", "fps", "canvas", "target_minutes", "state", "module", "milestones")},
+            "voice": {"provider": vc.get("provider"), "voice_set": bool(vc.get("voice_id")), "speed": vc.get("speed", "medium"), "gap": vc.get("gap", "medium")},
             "root": P, "sections": secs, "total_frames": sum(s["duration"] for s in secs),
             "redaction": {"confirmed": m.get("confirmed", False), "tokens": len(m.get("tokens", [])),
                           "active": len(redact.active_tokens(m))},
@@ -373,6 +517,12 @@ class H(BaseHTTPRequestHandler):
                 return self.send_file(safe_path(urllib.parse.unquote(m.group(2)), root))
             if path == "/api/project":
                 return self.send_json(project_payload())
+            if path == "/api/full":
+                return self.send_json(full_info())
+            if path == "/api/direction":
+                return self.send_json(direction_payload())
+            if path == "/api/theme":
+                return self.send_json({"theme": load_theme(), "usage": theme_usage()})
             m = re.match(r"^/api/section/(s\d+)$", path)
             if m:
                 return self.send_json(section_payload(m.group(1)))
@@ -392,8 +542,12 @@ class H(BaseHTTPRequestHandler):
                 s = read_secrets()
                 cfg = project_cfg()
                 return self.send_json({
-                    "heygen": {"key_set": bool(s.get("HEYGEN_API_KEY")), "avatar_id": cfg.get("avatar", {}).get("avatar_id") or s.get("HEYGEN_AVATAR_ID", "")},
-                    "elevenlabs": {"key_set": bool(s.get("ELEVENLABS_API_KEY")), "voice_id": cfg.get("voice", {}).get("voice_id", "")}})
+                    # 음성 보이스는 프로젝트에 하나(voice.provider로 어느 서비스 것인지 구분). 각 카드에는 자기 서비스 것만 보인다
+                    "heygen": {"key_set": bool(s.get("HEYGEN_API_KEY")), "avatar_id": cfg.get("avatar", {}).get("avatar_id") or s.get("HEYGEN_AVATAR_ID", ""),
+                               "voice_id": (cfg.get("voice") or {}).get("voice_id", "") if (cfg.get("voice") or {}).get("provider") == "heygen" else ""},
+                    "elevenlabs": {"key_set": bool(s.get("ELEVENLABS_API_KEY")),
+                                   "voice_id": (cfg.get("voice") or {}).get("voice_id", "") if (cfg.get("voice") or {}).get("provider") in (None, "elevenlabs") else ""},
+                    "voice_provider": (cfg.get("voice") or {}).get("provider")})
             if path == "/api/voice-samples":
                 vd = os.path.join(P, "global_assets", "voice_samples")
                 out = []
@@ -431,6 +585,13 @@ class H(BaseHTTPRequestHandler):
                 else:
                     return self.send_json({"error": "bad target"}, 400)
                 return self.send_json({"ok": True, "saved": now()})
+            if path == "/api/theme":
+                body = self.body_json()
+                if not isinstance(body, dict) or "styles" not in body or "colors" not in body:
+                    return self.send_json({"error": "theme 형식이 아닙니다"}, 400)
+                body["version"] = int(body.get("version", 1)) + 1
+                wjson(theme_path(), body)
+                return self.send_json({"ok": True, "version": body["version"], "saved": now()})
             if path == "/api/redaction":
                 body = self.body_json()
                 m_ = redact.load_map(P)
@@ -453,6 +614,23 @@ class H(BaseHTTPRequestHandler):
     def do_POST(self):
         try:
             path, q = self.route()
+            if path == "/api/direction/approve":
+                try:
+                    return self.send_json({"ok": True, "direction": approve_direction()})
+                except ValueError as e:
+                    return self.send_json({"error": str(e)}, 400)
+            if path == "/api/voice/settings":
+                bb = self.body_json()
+                cfg = project_cfg()
+                v = cfg.setdefault("voice", {})
+                for k in ("speed", "gap"):
+                    if k in bb and bb[k] in ("slow", "medium", "fast", "short", "long") or (k in bb and isinstance(bb[k], (int, float))):
+                        v[k] = bb[k]
+                save_project_cfg(cfg)
+                return self.send_json({"ok": True, "voice": {k: v.get(k) for k in ("speed", "gap")}})
+            if path == "/api/full/build":
+                ok = start_full_build()
+                return self.send_json({"ok": ok, "error": None if ok else "이미 합본을 만드는 중입니다."}, 200 if ok else 409)
             m = re.match(r"^/api/section/(s\d+)/render$", path)
             if m:
                 b = self.body_json()
@@ -498,14 +676,19 @@ class H(BaseHTTPRequestHandler):
                     cfg = project_cfg()
                     cfg.setdefault("avatar", {})["avatar_id"] = b["avatar_id"].strip()
                     save_project_cfg(cfg)
+                if b.get("voice_id", "").strip():
+                    # HeyGen 보이스로 음성을 만든다 (tts_heygen.py)
+                    cfg = project_cfg()
+                    cfg.setdefault("voice", {}).update({"provider": "heygen", "voice_id": b["voice_id"].strip()})
+                    save_project_cfg(cfg)
                 return self.send_json({"ok": True})
             if path == "/api/accounts/elevenlabs":
                 b = self.body_json()
                 if b.get("api_key"):
                     write_secret("ELEVENLABS_API_KEY", b["api_key"].strip())
-                if "voice_id" in b:
+                if b.get("voice_id", "").strip():
                     cfg = project_cfg()
-                    cfg.setdefault("voice", {})["voice_id"] = b["voice_id"].strip()
+                    cfg.setdefault("voice", {}).update({"provider": "elevenlabs", "voice_id": b["voice_id"].strip()})
                     save_project_cfg(cfg)
                 return self.send_json({"ok": True})
             if path == "/api/accounts/heygen/test":
@@ -551,6 +734,26 @@ class H(BaseHTTPRequestHandler):
             return self.send_json({"ok": True, "path": os.path.relpath(dst, d), "url": "/files/" + os.path.relpath(dst, P)})
         if st.get("locked"):
             return self.send_json({"error": "잠긴 섹션입니다."}, 409)
+        if action == "voicebeat":
+            # 비트별 속도·뒤 텀 (스튜디오 대본 탭). 값이 null이면 프로젝트 기본값을 따른다
+            bb = self.body_json()
+            bp = os.path.join(d, "beats.json")
+            bj = rjson(bp, {"beats": []})
+            for x in bj["beats"]:
+                if x["id"] == bb.get("beat"):
+                    for k in ("speed", "gap_after"):
+                        if k in bb:
+                            if bb[k] in (None, ""):
+                                x.pop(k, None)
+                            else:
+                                x[k] = bb[k]
+            wjson(bp, bj)
+            return self.send_json({"ok": True})
+        if action == "retime":
+            # 음성은 그대로, 텀·속도 설정을 타임라인에 반영 (외부 호출 없음)
+            import tts_heygen
+            dur, n = tts_heygen.retime(P, sid, project_cfg())
+            return self.send_json({"ok": True, "duration": dur, "voiced": n})
         if action == "request":
             b = self.body_json()
             cm = rjson(os.path.join(d, "comments.json"), {"comments": []})
@@ -622,7 +825,20 @@ def test_heygen():
             checks.append({"name": "아바타", "ok": False, "msg": "HTTP %s %s" % (code, err_msg(body))})
     else:
         checks.append({"name": "아바타", "ok": False, "msg": "avatar_id가 없습니다."})
-    return {"ok": all(c["ok"] for c in checks), "checks": checks, "avatar": avatar, "tested": now()}
+    v = project_cfg().get("voice") or {}
+    if v.get("provider") == "heygen" and v.get("voice_id"):
+        code, body = http_json("https://api.heygen.com/v3/models/audio/voices/%s" % urllib.parse.quote(v["voice_id"]), h)
+        if code == 200:
+            d = body.get("data", body)
+            mode = d.get("mode") or d.get("type")
+            note = "말 속도는 HeyGen speed(0.75~1.25), 모델 heygen-voice-1(유료)" if mode == "professional" else "말 속도는 이 PC에서 맞춤, 모델 Turbo Free(2026-11-30까지 무료)"
+            checks.append({"name": "음성 보이스", "ok": d.get("status") in (None, "ACTIVE"),
+                           "msg": "%s · %s · %s · %s" % (d.get("name") or v["voice_id"][:8], mode or "-", d.get("status") or "-", note), "voice_mode": mode})
+        else:
+            checks.append({"name": "음성 보이스", "ok": False, "msg": "HTTP %s %s" % (code, err_msg(body))})
+    else:
+        checks.append({"name": "음성 보이스", "ok": False, "msg": "HeyGen voice_id가 없습니다 (음성을 HeyGen으로 만들 때 필요)."})
+    return {"ok": all(c["ok"] for c in checks if c["name"] != "아바타" or aid), "checks": checks, "avatar": avatar, "tested": now()}
 
 
 def test_elevenlabs():
@@ -709,7 +925,7 @@ def clone_voice(b):
                            method="POST", data=b"".join(parts), timeout=120)
     if code == 200 and body.get("voice_id"):
         cfg = project_cfg()
-        cfg.setdefault("voice", {})["voice_id"] = body["voice_id"]
+        cfg.setdefault("voice", {}).update({"provider": "elevenlabs", "voice_id": body["voice_id"]})
         save_project_cfg(cfg)
         return {"ok": True, "voice_id": body["voice_id"], "requires_verification": body.get("requires_verification")}
     return {"ok": False, "error": "HTTP %s %s" % (code, err_msg(body))}

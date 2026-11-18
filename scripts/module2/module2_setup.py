@@ -164,7 +164,7 @@ def ensure_remotion_root(root):
 
 
 def setup_three(root=None):
-    """<root>/codex-workspace/module2 에만 3D 의존성 설치. 공용 package.json 무변경(Remotion AGENTS.md 격리 규칙)."""
+    """<root>/codex-workspace/module2 에만 3D·섹션 전환(@remotion/transitions) 의존성 설치. 공용 package.json 무변경(Remotion AGENTS.md 격리 규칙)."""
     root = root or m2env.remotion_root()
     rv_p = os.path.join(root, "node_modules", "remotion", "package.json")
     if not os.path.exists(rv_p):
@@ -179,7 +179,7 @@ def setup_three(root=None):
             json.dump({"name": "module2-workspace-deps", "private": True,
                        "description": "모듈2 전용 3D 의존성. 공용 package.json을 건드리지 않기 위해 이 폴더에만 설치.", "dependencies": {}},
                       f, ensure_ascii=False, indent=2)
-    npm_install(ws, ["@remotion/three@%s" % rv] + ["%s@%s" % kv for kv in m2env.THREE_PINS.items()], legacy=True)
+    npm_install(ws, ["@remotion/three@%s" % rv, "@remotion/transitions@%s" % rv] + ["%s@%s" % kv for kv in m2env.THREE_PINS.items()], legacy=True)
     # @remotion/three가 끌고 오는 중복 사본 제거 (두 벌이면 3D 안에서 프레임 컨텍스트가 끊김)
     for n in ("remotion", "react", "react-dom"):
         shutil.rmtree(os.path.join(ws, "node_modules", n), ignore_errors=True)

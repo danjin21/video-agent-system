@@ -34,7 +34,9 @@ python3 $S/assemble.py <project> [--draft]                 # 섹션 이어 붙�
 ```
 [0] 접수        사용자에게 경영전략회의 자료를 요청 (PPT / 대본 / 둘 다)
 [1] 마스킹      회사명·금액·수치·지역 등 추출 → A사 / 99999원 / 임시지역 으로 치환, 매핑표는 로컬에만
-[2] 4레이어 초안 섹션마다 ① 대본 정리 ② 스토리보드(글 줄기) ③ 장표 레이아웃 ④ 영상화 타임라인
+[2] 연출안      director가 영상 전체 연출안(direction.md) → 스튜디오 '연출안'에서 사용자 승인 (필수 게이트)
+    4레이어 초안 섹션마다 ① 대본 정리 ② 스토리보드(글 줄기) ③ 장표 레이아웃 ④ 영상화 타임라인 — 섹션별 직접 설계
+    연출 검수    direction_check.py (오류 시 최종 렌더 차단) + design-critic 스틸 판정
 [3] 스튜디오 리뷰 로컬 웹에서 섹션 하나씩 보고 → 코멘트 + 직접 편집(위치·크기·폰트·타이밍)
 [4] 섹션 수정    코멘트 받은 섹션마다 서브에이전트 1개씩 띄워 수정 → 다시 스튜디오 → 반복 → 섹션 잠금
 [5] 계정 연결    스튜디오 안에서 HeyGen 로그인·아바타 확인, ElevenLabs 녹음·보이스 클론 가이드
@@ -78,8 +80,11 @@ python3 $S/assemble.py <project> [--draft]                 # 섹션 이어 붙�
 3. 로고·브랜드 자산 (로고는 임의 제작 금지, 받은 파일 그대로)
 4. BGM 방향 (ElevenLabs Music 생성 / 사용자 보유 트랙)
 5. 사용자가 직접 만든 별도 영상 소스 유무 (§10 규칙 따름)
+6. **참고 영상** — 이전 전략회의 영상·장면 캡처·녹취록, 좋아하는 레퍼런스. 있으면 director가 연출 문법을 뽑아 연출안의 기준으로 삼는다(§4-0).
 
-산출: `00-intake/` 원본 보관, `00-direction/direction.md`(섹션 골격·분량 배분).
+산출: `00-intake/` 원본 보관, `00-direction/direction.md`(연출안 — init이 템플릿 복사, director가 채움).
+
+> **"기본 영상"의 뜻 (2026-11-16 사용자 교정):** "아바타·목소리 빼고 기본 영상"은 **연출을 빼라는 뜻이 아니다.** 연출안·다이어그램·카운트업·챕터 간지·b-roll 자리는 그대로 만들고, 없는 재료(아바타·실사·음성)만 자리표시·추정 시간으로 둔다.
 
 ---
 
@@ -141,7 +146,32 @@ python3 $S/assemble.py <project> [--draft]                 # 섹션 이어 붙�
 
 ---
 
-## 4. [2] 섹션별 4레이어 초안
+## 4. [2] 연출안 → 섹션별 4레이어 초안
+
+### 4-0. 연출안 (필수 게이트, 2026-11-16)
+> 배경: 2027 전략회의 1차 결과물이 22개 섹션 모두 "제목 + 불릿 카드 3~6개 + 자막 바"로 찍혀 나왔다. 사용자: "장표가 모두 일괄적이다", "숫자가 쫘라락 바뀌고, 강조는 파란색, 건물 전경이 나오며 카메라가 도는 연출 — 그런 기획이 다 생략됐다. 빌드업을 해야 하는데." 원인은 절차서(SKILL.md)에 director 단계가 없어 init 골격을 반복문으로 채워 렌더한 것. director·storyboarder·design-critic의 2026-06~07 학습이 모듈2에 연결되지 않았다.
+
+1. director가 `00-direction/direction.md`(템플릿 `templates/module2/direction.md`)를 채운다: 한 줄 메시지·감정 흐름 / 참고 영상 문법 표 / 챕터 구조·빌드업(오프닝 훅·클라이맥스·수미상관) / **섹션별 주인공 장치 1개 + 이유 + 비트별 큐** / 수치 전부의 연출 / b-roll 자리(묘사·카메라·검색어) / 하지 않을 것.
+2. 참고 영상이 있으면 먼저 분석: 챕터 간지, 숫자 연출(카운트업·막대·거대 숫자), 다이어그램, 실사 영상 지점과 비유, 감정 고점 장치, 화면 글자 방식(키워드 vs 문장). 2026 하반기 영상의 문법은 `templates/module2/remotion/DIRECTION_KIT.md` 레시피 표에 정리.
+3. 스튜디오 **연출안** 탭(`#direction`)에서 사용자가 승인 → `project.json state.direction = {approved_at, hash}`. 연출안이 바뀌면 해시가 달라져 다시 승인.
+4. 승인 뒤 섹션 작업자가 섹션별로 직접 설계한다. **모든 섹션을 한 생성 스크립트로 찍어내지 않는다.** 끝난 섹션은 `status.json` `scaffold:false`.
+5. 연출 검수 `scripts/module2/direction_check.py` — 오류(연출안 없음·미승인·골격 그대로·글자만·숫자 연출 없음·같은 장치 3연속)가 있으면 `render_section.py`가 최종 렌더를 거부한다(초안·스틸은 허용). 경고: 8초 정지·자막 바·굵기 800·챕터 간지 없음. 통과 후 design-critic이 대표 스틸을 `taste-rubric.json`으로 판정.
+
+### 4-0-0. 디자인 키트 (구현됨, 2026-11-18)
+> 사용자: "영상에 넣은 디자인 요소들을 종류별로 리스트업해서 스튜디오에서 볼 수 있게 — 그래야 공통 양식을 수정할 수 있다. 모든 장표의 타이틀 폰트 크기와 위치, 박스색 이런 것들을 다 여기를 통과해서 만들게 되는 것. 아이디어도 제공받고, 애니메이션 양식 같은 것도 다 이 키트에서 정하고, 그걸로 소통하고 조정한다."
+
+- 단일 출처 `$P/design/theme.json` (템플릿 `templates/module2/theme.json`): `colors`(+`colorLabels`), `styles`(글자 양식 14종 — 위치·크기·굵기·색·박스·`label`·`idea`), `motion`(양식별 등장·퇴장 프리셋), `components`(연출 부품 13종 이름·아이디어).
+- 요소 `"style"` 참조 + `"$색"` 참조 → `anim.js mergeSection(layout, timeline, edits, theme)`가 병합(스튜디오·Remotion 공용, `render_section`이 props에 theme 포함). `applyKitTheme`가 diagram 기본 색도 테마로 바꾼다.
+- 스튜디오 `디자인 키트` 탭(`#kit`) + `GET/PUT /api/theme`(+ 쓰인 곳 집계 `usage`). 테마를 저장하면 버전이 오르고 모든 섹션 렌더가 stale → 합본 다시 만들기.
+- 2027 전략회의 적용: 22섹션 글자 요소 중 대부분이 양식 참조(title 18·kicker 24·headline 21·focus 카드 등), 직접 값은 특수 글자 18개만.
+
+### 4-0-0b. 배치 검사 (구현됨, 2026-11-18)
+`scripts/module2/layout_audit.mjs` — anim.js가 그리는 글자·선·원·막대의 화면 좌표를 기록(`collectDiagram`, `measureText`)해 장면 시점마다 겹침·가로지름·24px 미만 붙음·화면 밖을 찾는다. direction_check 오류(겹침·가로지름)/경고(붙음·화면 밖)로 연결, 스튜디오 연출안 탭 검수 목록에 표시. 대형 키워드 글자 스태거는 한 단어로 본다.
+
+### 4-0-1. 연출 키트 (구현됨)
+요소 `type:"diagram"`(kind 11종: chapter·keyword·ghost·stat·bars·line·nodes·table·cards·arrow·banner)과 `type:"broll"`(실사 자리표시 → `src` 생기면 실사, 카메라 줌·팬·회전). 그리는 규칙은 `anim.js`의 `diagramSVG`·`brollSVG` 하나 → 스튜디오 미리보기와 Remotion 렌더가 같다. props와 레시피: `templates/module2/remotion/DIRECTION_KIT.md`. b-roll 자리표시는 초안·최종 모두 보인다(기획이 화면에 남도록).
+
+### 4-1. 섹션 4레이어
 
 15분 영상은 **섹션 15~25개**(섹션당 30~60초)로 나눈다. 섹션마다 아래 4개 레이어를 만든다.
 
@@ -154,7 +184,9 @@ python3 $S/assemble.py <project> [--draft]                 # 섹션 이어 붙�
 
 규칙:
 - 데이터 섹션은 **차트 스펙 먼저, 대본 나중** (main.md §5-E 유지).
-- 장표는 **숫자 나열 금지**, 다이어그램 키트(`templates/remotion/Diagrams.tsx`) 우선.
+- 장표는 **숫자 나열 금지**, 연출 키트(`DIRECTION_KIT.md` — 모듈1 `Diagrams.tsx`의 모듈2 데이터 구동판) 우선.
+- 같은 장치 구성 3섹션 연속 금지, 글자만 있는 섹션 금지, 대본 수치는 전부 숫자 연출, 8초 넘는 정지 금지, 자막 바 기본 off (direction_check가 검사).
+- **한 장면에 화두 하나 (2026-11-17).** 사용자: "한 내용에 하나의 큰 화두가 보여야 한다. 장표처럼 여러 내용이 가로 세로 스파게티처럼 있으면 안 된다." 섹션은 화두 단위 장면의 연속으로 설계한다 — 지금 화두만 가운데에 크게, 다음 화두가 오면 이전 화두 퇴장, 제목은 작은 머리말. 반전 문장은 화면을 비우고 코랄 가로 띠(`banner rx:0 wipe:true`). direction_check `busy`: 동시 내용 6개 이상 오류, 4~5개 경고(같은 `group`은 하나로).
 - 섹션 사이 연결(전환·톤)은 오케스트레이터가 관리하고, 섹션 에이전트는 자기 섹션만 본다.
 
 프로젝트 구조:
@@ -188,12 +220,14 @@ python3 $S/assemble.py <project> [--draft]                 # 섹션 이어 붙�
 | 화면 | 기능 |
 |---|---|
 | 시작 | 자료 업로드(PPT·대본), 프로젝트 설정, 진행 단계 표시 |
+| 연출안 (필수) | direction.md 렌더 + 승인 버튼(해시) + 연출 검수 결과(오류·경고, 누르면 그 섹션) (§4-0) |
 | 마스킹 검토 | 추출 토큰 표, 실값↔대체어 수정, 오탐 해제, 확정 버튼 |
 | 섹션 목록 | 섹션 카드(제목·길이·상태: 초안/코멘트있음/수정중/잠금) |
 | 섹션 뷰 | 4레이어 탭(대본·스토리보드·장표·타임라인) + 미리보기 플레이어 + 코멘트 패널 |
 | 편집 모드 | 캔버스에서 요소 드래그(위치)·핸들(크기)·폰트 패널·타임라인 바 드래그(등장·퇴장) |
 | 계정 연결 | HeyGen·ElevenLabs 연결과 가이드 (§6) |
-| 전체 미리보기 | 섹션 이어보기, 렌더 상태 |
+| 디자인 키트 (필수) | 색·글자 양식·애니메이션 양식·연출 부품 카탈로그·쓰인 곳·양식 밖 요소 (§4-0-0) |
+| 전체 보기 (필수) | 합본 영상 처음~끝 이어보기, 섹션 챕터 이동, 합본 미반영 섹션 표시, "합본 다시 만들기" (§5-5) |
 
 미리보기는 **`anim.js`(렌더 의미론 정본)**로 그린다. 요소 병합(`mergeSection`), 프레임별 상태(`stateAt`: 투명도·이동·크기·닦아내기·강조), 표시 텍스트(`displayText`·`richSegments`: 타자기·카운트업·[[강조]])가 순수 함수로 들어 있어, 데이터 구동 Remotion 컴포넌트가 **같은 파일을 import**하면 미리보기와 렌더가 일치한다. (설계 v0의 `@remotion/player` 임베드는 빌드 체인이 필요해 보류. 3D·차트·실제 아바타는 렌더 단계에서 완성.)
 - 비트 음성(`audio/beat-N.wav`)이 있으면 미리보기 재생 때 같이 나오고, `beat-N.words.json`(ASR)이 있으면 타임라인에 단어 시작점이 찍혀 막대가 거기에 붙는다.
@@ -240,6 +274,22 @@ python3 $S/assemble.py <project> [--draft]                 # 섹션 이어 붙�
 - Remotion 컴포넌트는 **`layout.json` + `edits.json` + `timeline.json`을 읽어 그린다.** 값을 .tsx에 하드코딩하지 않는다.
 - 이유: CFO 영상에서 수치가 .tsx에 박혀 있어 값 하나 바꿀 때마다 재코딩이 필요했다. 스튜디오 편집값이 그대로 영상이 되려면 데이터 구동이어야 한다.
 
+### 5-5. 전체 보기 — 합본 이어보기 (필수, 구현됨)
+섹션 리뷰만으로는 흐름·길이·섹션 사이 연결을 판단할 수 없다. 사용자는 **스튜디오 안에서** 전체 영상을 처음부터 끝까지 볼 수 있어야 한다. 스튜디오를 새로 만들거나 고치는 에이전트는 이 화면을 빼거나 별도 플레이어·파일 경로 안내로 대체하지 않는다.
+
+| 항목 | 동작 |
+|---|---|
+| 위치 | 상단 탭 `전체 보기` (`#full`), '섹션 리뷰' 바로 옆 |
+| 재생 | `final/master.mp4`(없으면 `master_draft.mp4`)를 `/files/`로 서빙(Range 지원 → 탐색 가능) |
+| 챕터 | 오른쪽 섹션 목록. 시작 = `final/master.json`의 실제 위치(섹션 전환으로 경계마다 n프레임 겹침; 없으면 앞 섹션 `timeline.duration` 합). 누르면 그 지점부터 재생, 재생 중 현재 섹션 강조 |
+| 현재 섹션 | 플레이어 아래 "NN 제목 · 현재/전체" + **이 섹션 리뷰하기**(섹션 리뷰로 이동) |
+| 미반영 표시 | 섹션별 `렌더 없음` / `편집 후 렌더 필요`(layout·timeline·edits가 최종 렌더보다 새로움) / `합본 이후 렌더됨` |
+| 합본 다시 만들기 | 서버 백그라운드 작업: 렌더 없음·편집 후 렌더 필요 섹션만 최종 렌더 → `assemble.py`. 진행 단계 표시, 끝나면 보던 위치를 유지한 채 새 영상으로 교체 |
+
+API: `GET /api/full` → `{fps,total_frames,sections:[{id,title,start,duration,changed}],file:{url,name,draft,made},job}`, `POST /api/full/build` → 작업 시작(이미 돌면 409). 구현: `studio_server.py`의 `full_info`·`start_full_build`, `app.js`의 `viewFull`.
+- 섹션 수정 루프([4])가 끝나면 사용자가 '전체 보기'에서 합본을 다시 만들어 확인할 수 있다고 알린다. 에이전트가 직접 합본을 갱신했다면 그렇다고 말한다.
+- 렌더는 Node.js를 쓰므로, 회사 프록시 환경에서는 스튜디오 서버를 `NODE_USE_ENV_PROXY=1`로 띄워야 Remotion 브라우저 다운로드가 된다.
+
 ---
 
 ## 6. [5] 계정 연결 가이드 (스튜디오 내)
@@ -262,6 +312,12 @@ python3 $S/assemble.py <project> [--draft]                 # 섹션 이어 붙�
 ---
 
 ## 7. [6] 음성 — ElevenLabs 클론 보이스
+
+> **구현됨 (2026-11-17)** — `scripts/module2/tts_voice.py` (ElevenLabs·HeyGen 공용). 절차와 피드백→조정 대응표는 SKILL.md [6]이 정본.
+> - 목소리 확정: 발표자 음성 30초+ → Instant Voice Clone → **같은 문장 비교 샘플**(안정성·속도·음높이·끝처리·앞뒤맥락) → 사용자 선택 → `project.json voice`.
+> - 실제 사례: HeyGen instant 보이스는 "가볍고 얄밉다" → ElevenLabs 클론(용미니4.wav 51.6초)으로 전환, 안정성 0.85·스타일 0·속도 1.0 확정. 문장 끝 처리(tail)는 비교했으나 미채택.
+> - 민감 실값은 자리채움 숫자로 생성 후 글자 시각으로 그 구간만 무음 (아래 §7-3 스플라이스의 1단계. 실값 조각 생성·끼워 넣기는 아직).
+> - 처음 1분만 먼저 만들고 확정 → 확장.
 
 ### 7-1. 기본
 - 사용자 클론 보이스로 비트별 WAV 생성. 캐시 키 = 텍스트 + voice_id + 모델 + 설정.
@@ -376,8 +432,11 @@ python3 $S/assemble.py <project> [--draft]                 # 섹션 이어 붙�
 | 이 문서 (module2.md) | ✅ v1 | 2026-11-11 |
 | 프로젝트 초기화·섹션 골격 `scripts/module2/module2_init.py` | ✅ | 대본 md/docx/txt, pptx(노트 우선), `--demo` |
 | 마스킹 `scripts/module2/redact.py` | ✅ | 정규식+사전+휴리스틱, 조사 교정, 게이트, splice-plan. 놓친 토큰은 오케스트레이터가 보탬 |
-| 로컬 웹 스튜디오 `studio_server.py` + `templates/module2/studio/` | ✅ | 섹션 4레이어, 미리보기 재생, 직접 편집, 타임라인, 코멘트·첨부, 잠금·버전, 마스킹 검토, 계정 연결·녹음기·클론 |
+| 로컬 웹 스튜디오 `studio_server.py` + `templates/module2/studio/` | ✅ | 섹션 4레이어, 미리보기 재생, 직접 편집, 타임라인, 코멘트·첨부, 잠금·버전, 마스킹 검토, 계정 연결·녹음기·클론, 전체 보기(합본 이어보기·챕터·합본 다시 만들기, §5-5) |
 | 수정 대기열 `scripts/module2/studio_queue.py` | ✅ | list/start(fold)/brief/done |
+| 연출안 템플릿 `templates/module2/direction.md` + 스튜디오 '연출안' 탭·승인 | ✅ | 2026-11-16. 승인 해시, 검수 결과 표시 |
+| 연출 검수 게이트 `scripts/module2/direction_check.py` | ✅ | 최종 렌더 차단(render_section 연동), `--skip-check`는 사용자 허락 시만 |
+| 연출 키트 diagram 11종 + broll 자리표시 (`anim.js`, `DIRECTION_KIT.md`) | ✅ | 스튜디오·Remotion 공용 SVG |
 | 렌더 의미론 `templates/module2/studio/anim.js` | ✅ | 미리보기와 Remotion이 공유할 순수 함수 |
 | 데이터 구동 Remotion 섹션 컴포지션 `templates/module2/remotion/` | ✅ | anim.js 공유, 3D·영상·이미지·리치 텍스트·음성 |
 | 섹션 렌더 `scripts/module2/render_section.py` + `setup_remotion.sh` | ✅ | 초안/최종/정지 화면, 스튜디오 버튼·렌더본 보기 |
@@ -399,6 +458,11 @@ python3 $S/assemble.py <project> [--draft]                 # 섹션 이어 붙�
 ---
 
 ## 12. 절대 하지 말 것
+
+- 연출안 승인 없이 섹션 장표 만들기 / init 골격을 그대로 렌더해 영상으로 내놓기
+- 모든 섹션을 생성 스크립트 하나로 같은 틀에 찍어내기
+- "아바타·음성 없이"를 "연출 없이"로 해석하기
+- direction_check 오류를 남긴 채 합본을 완성본으로 보고하기
 
 - 마스킹 확정 전에 대본을 ElevenLabs·HeyGen·웹검색에 보내기
 - `redaction_map.json`을 커밋·업로드·아티팩트에 포함하기

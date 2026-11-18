@@ -145,7 +145,10 @@ def scaffold_section(d, sid, idx, total, sec, force):
                                              "audio": [], "elements": tl})
     wjson(os.path.join(d, "edits.json"), {"base_version": 1, "elements": {}})
     wjson(os.path.join(d, "comments.json"), {"comments": []})
-    wjson(os.path.join(d, "status.json"), {"status": "draft", "version": 1, "locked": False})
+    # scaffold: 이 골격은 스튜디오가 열리게 하는 자리표시일 뿐 완성품이 아니다.
+    # 연출안(00-direction/direction.md) 승인 뒤 섹션 작업자가 직접 설계하고 scaffold를 false로 바꾼다.
+    # 남아 있으면 direction_check가 최종 렌더를 막는다.
+    wjson(os.path.join(d, "status.json"), {"status": "draft", "version": 1, "locked": False, "scaffold": True})
     return True
 
 
@@ -190,6 +193,14 @@ def main():
     if md is not None:
         with open(os.path.join(P, "00-direction", "script_full.md"), "w", encoding="utf-8") as f:
             f.write(md)
+    dirp = os.path.join(P, "00-direction", "direction.md")
+    if not os.path.exists(dirp):
+        shutil.copy2(os.path.join(TEMPLATE, "direction.md"), dirp)
+    # 디자인 키트: 공통 양식(색·글자 양식·애니메이션·부품)의 단일 출처. 스튜디오 '디자인 키트' 탭에서 고친다
+    themep = os.path.join(P, "design", "theme.json")
+    if not os.path.exists(themep):
+        os.makedirs(os.path.dirname(themep), exist_ok=True)
+        shutil.copy2(os.path.join(TEMPLATE, "theme.json"), themep)
     made = 0
     for i, s in enumerate(secs):
         sid = "s%02d" % (i + 1)
@@ -202,7 +213,8 @@ def main():
     redact.ensure_gitignore(P)
     print("project:", P)
     print("sections:", len(secs), "(new %d)" % made)
-    print("다음: redact.py scan %s → studio_server.py %s" % (P, P))
+    print("섹션 파일은 골격(scaffold)입니다 — 완성품이 아닙니다.")
+    print("다음: redact.py scan → director가 00-direction/direction.md 작성 → 스튜디오 '연출안' 승인 → 섹션별 설계")
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, {useEffect, useState} from 'react';
 import {AbsoluteFill, Audio, CalculateMetadataFunction, Img, OffthreadVideo, Sequence, continueRender, delayRender, staticFile, useCurrentFrame} from 'remotion';
-import {mergeSection, richSegments, stateAt, displayText} from './anim.js';
+import {mergeSection, richSegments, stateAt, displayText, diagramSVG, brollSVG, brollCamera, setMediaResolver, diagramMedia, emphasisShadow, transformOf} from './anim.js';
 import {Scene3D} from './three/Scene3D';
 
 export type SectionProps = {
@@ -16,10 +16,11 @@ export type SectionProps = {
   audio: {src: string; at: number}[];
   withAudio: boolean;
   draft: boolean; // true면 아직 없는 아바타·차트 자리에 표시를 그린다
+  theme?: any; // 프로젝트 design/theme.json (디자인 키트) — 스튜디오 미리보기와 같은 값
 };
 
 export const sectionMetadata: CalculateMetadataFunction<SectionProps> = ({props}) => {
-  const m = mergeSection(props.layout, props.timeline, props.edits);
+  const m = mergeSection(props.layout, props.timeline, props.edits, props.theme);
   return {durationInFrames: Math.max(1, m.duration), fps: m.fps, width: m.canvas.w, height: m.canvas.h};
 };
 
@@ -46,6 +47,21 @@ const useFonts = (fonts: SectionProps['fonts'], families: {family: string; weigh
   }, []);
 };
 
+// diagram 안의 사진(zoomReveal·split·gallery·compare·stack)은 SVG <image>라 Remotion이 기다려 주지 않는다 → 프레임 그리기 전에 전부 불러 둔다
+const useMedia = (srcs: string[]) => {
+  const [handle] = useState(() => (srcs.length ? delayRender('module2 photos') : null));
+  useEffect(() => {
+    if (handle === null) return;
+    Promise.all(srcs.map((u) => new Promise<void>((ok) => {
+      const im = new Image();
+      im.onload = () => (im.decode ? im.decode().catch(() => undefined).then(() => ok()) : ok());
+      im.onerror = () => ok();
+      im.src = u;
+    }))).then(() => continueRender(handle));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+};
+
 const Placeholder: React.FC<{label: string}> = ({label}) => (
   <div style={{width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b778c', fontSize: 36,
     border: '4px dashed #9aa6b8', borderRadius: 12, background: 'rgba(255,255,255,.35)', boxSizing: 'border-box', fontFamily: 'Pretendard'}}>{label}</div>
@@ -61,9 +77,9 @@ const Element: React.FC<{el: any; frame: number; p: SectionProps; fps: number}> 
     whiteSpace: 'pre-wrap', wordBreak: 'keep-all',
     fontFamily: f.family ? `"${f.family}", Pretendard, sans-serif` : undefined, fontWeight: f.weight, fontSize: f.size,
     color: f.color, textAlign: f.align || 'left', lineHeight: f.lineHeight, letterSpacing: f.letterSpacing != null ? f.letterSpacing : undefined,
-    opacity: st.opacity, transform: `translate(${st.tx}px, ${st.ty}px) scale(${st.scale})`,
+    opacity: st.opacity, transform: transformOf(st),
     clipPath: st.clipL || st.clipR ? `inset(-20px ${st.clipR}% -20px ${st.clipL}%)` : undefined,
-    boxShadow: st.highlight ? `0 0 0 ${14 * st.highlight}px rgba(255,214,0,${0.4 * st.highlight})` : undefined,
+    boxShadow: emphasisShadow(st) || undefined,
   };
   if (el.type === 'text' && el.valign) {
     style.display = 'flex';
@@ -85,6 +101,21 @@ const Element: React.FC<{el: any; frame: number; p: SectionProps; fps: number}> 
     content = el.src && el.srcExists !== false
       ? local(<OffthreadVideo muted src={resolve(el.src, p.sectionDir)} style={{width: '100%', height: '100%', objectFit: 'cover'}} />)
       : (p.draft ? <Placeholder label={el.text || (el.type === 'avatar' ? '아바타 (HeyGen 생성 전)' : '영상')} /> : null);
+  } else if (el.type === 'diagram') {
+    // 연출 키트: anim.js가 만든 SVG를 그대로 (스튜디오 미리보기와 같은 함수)
+    content = <div style={{width: '100%', height: '100%', overflow: 'visible'}} dangerouslySetInnerHTML={{__html: diagramSVG(el, frame - el.t.in)}} />;
+  } else if (el.type === 'broll') {
+    const span = el.t.out - el.t.in, lf = frame - el.t.in;
+    if (el.src && el.srcExists !== false) {
+      const cam = brollCamera(el, lf, span);
+      content = local(<div style={{width: '100%', height: '100%', overflow: 'hidden'}}>
+        <OffthreadVideo muted src={resolve(el.src, p.sectionDir)} style={{width: '100%', height: '100%', objectFit: 'cover',
+          transform: `translate(${cam.tx}px, ${cam.ty}px) rotate(${cam.rotate}deg) scale(${cam.scale})`}} />
+      </div>);
+    } else {
+      // 실사가 아직 없으면 초안·최종 모두 자리표시 (기획이 화면에 보이게)
+      content = <div style={{width: '100%', height: '100%', overflow: 'hidden'}} dangerouslySetInnerHTML={{__html: brollSVG(el, lf, span)}} />;
+    }
   } else if (el.type === '3d') {
     content = local(<Scene3D scene={el.scene} props={el.props || {}} width={el.w} height={el.h} fps={fps} span={el.t.out - el.t.in} />);
   } else if (el.type === 'rect') {
@@ -97,9 +128,12 @@ const Element: React.FC<{el: any; frame: number; p: SectionProps; fps: number}> 
 
 export const Module2Section: React.FC<SectionProps> = (p) => {
   const frame = useCurrentFrame();
-  const m = mergeSection(p.layout, p.timeline, p.edits);
+  const m = mergeSection(p.layout, p.timeline, p.edits, p.theme);
   const families = Array.from(new Map(m.elements.filter((e: any) => e.font && e.font.family).map((e: any) => [`${e.font.family}|${e.font.weight || 400}`, {family: e.font.family, weight: e.font.weight || 400}])).values()) as any;
   useFonts(p.fonts, families);
+  setMediaResolver((src: string) => resolve(src, p.sectionDir));
+  const photos = Array.from(new Set(m.elements.filter((e: any) => e.type === 'diagram').flatMap((e: any) => diagramMedia(e)).map((s: string) => resolve(s, p.sectionDir)))) as string[];
+  useMedia(photos);
   return (
     <AbsoluteFill style={{background: m.canvas.bg, overflow: 'hidden'}}>
       {m.elements.map((el: any) => <Element key={el.id} el={el} frame={frame} p={p} fps={m.fps} />)}

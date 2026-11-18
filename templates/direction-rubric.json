@@ -1,17 +1,29 @@
 {
   "_note": "director(연출) 루브릭 시드. 프로젝트는 design/direction-rubric.json으로 복사·학습. 사용자 교정마다 갱신.",
-  "version": "seed-2026-06-26",
+  "version": "seed-2026-11-16",
   "principles": [
     {"id": "restraint_first", "rule": "가장 단순한 장치(깨끗한 면)가 디폴트. 장치는 스스로를 정당화할 때만."},
     {"id": "broll_default_off", "rule": "b-roll은 기본 미사용. 간지·표지·키워드·배경에 자동으로 깔지 말 것(사용자 피드백 2026-06)."},
     {"id": "broll_if_used", "rule": "정말 필요할 때만(메타포가 영상으로 살아야 하는 케이스). 쓸 땐 동적 선호, 블루 스크림/오버레이 강제 금지, 비유 1:1."},
     {"id": "one_director_feel", "rule": "영상 전체가 한 명의 PD가 컷한 느낌 — 톤·페이싱 일관."},
     {"id": "match_energy_to_emotion", "rule": "비트 에너지를 스크립트 감정 곡선에 맞춤(따뜻→긴장→자부심→결연→뭉클)."},
-    {"id": "no_gratuitous_decoration", "rule": "장식·중간 안내 라벨·과한 모션 금지. '빼면 더 나빠지나?' 통과해야 둠."}
+    {"id": "no_gratuitous_decoration", "rule": "장식·중간 안내 라벨·과한 모션 금지. '빼면 더 나빠지나?' 통과해야 둠."},
+    {"id": "restraint_not_uniformity", "rule": "절제는 장식·b-roll 남발을 막는 원칙이지 모든 장표를 같은 틀로 두라는 뜻이 아님. 섹션마다 주인공 장치 1개, 같은 구성 3연속 금지."},
+    {"id": "build_up", "rule": "오프닝 훅 → 챕터 간지 → 클라이맥스(목표 숫자·슬로건 대형 reveal) → 감정 고점(실사 + 큰 키워드) → 수미상관. 에너지 곡선을 연출안에 적는다."},
+    {"id": "every_number_moves", "rule": "대본에 나오는 핵심 수치는 전부 숫자 연출(카운트업·막대·표 하이라이트). 색만 바꾸기 금지."}
   ],
-  "device_priority": ["clean_blue", "clean_white", "chart", "big_keyword", "avatar", "b_roll"],
+  "device_priority": [
+    "clean_blue",
+    "clean_white",
+    "chart",
+    "big_keyword",
+    "avatar",
+    "b_roll"
+  ],
   "learned_from_session": [
     "간지에 b-roll = 별로 → 클린 블루 면이 더 강함",
-    "b-roll 쓸 거면 정적<동적, 파란 스크림 빼기"
+    "b-roll 쓸 거면 정적<동적, 파란 스크림 빼기",
+    "2026-11 2027 전략회의 1차: 22섹션 일괄 불릿 카드 + 자막 바 → '충격적'. 연출안·숫자 연출·실사 자리·빌드업 필수",
+    "2026 하반기 영상(구작품) 문법: 챕터 간지(01·Key 1), 키워드 카드 3장 → 챕터별 focus, KPI 표 행 하이라이트, 카운트업 + 막대, 비유 b-roll(횡단보도·나침반·경작지·컨테이너선·빌딩 앙각), 수미상관('참 좋은 회사')"
   ]
 }
