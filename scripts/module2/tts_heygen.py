@@ -310,6 +310,7 @@ def el_settings(voice, b=None, override=None):
     s = dict({"stability": 0.5, "similarity_boost": 0.8, "style": 0.0, "use_speaker_boost": True}, **(voice.get("settings") or {}))
     s.pop("speed", None)
     sp = speed_of((b or {}).get("speed", voice.get("speed")))
+    s.update((b or {}).get("voice_settings") or {})   # 비트별 덮어쓰기: 힘이 빠진 문장은 {"style":0.35,"stability":0.4} 처럼 (beats.json)
     s.update(override or {})
     s["speed"] = max(0.7, min(1.2, float(s.get("speed", sp))))
     return s

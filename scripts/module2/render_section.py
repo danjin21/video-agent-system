@@ -81,16 +81,17 @@ def font_index(P):
                 continue
             parts = re.split(r"[-_ ]", os.path.splitext(fn)[0])
             w = 400
-            for p in parts[1:]:
-                w = WEIGHTS.get(p.lower().replace("italic", ""), w)
+            for p in parts[1:]:   # Paperlogy-7Bold 처럼 앞에 숫자가 붙은 이름도
+                w = WEIGHTS.get(re.sub(r"^\d+", "", p.lower().replace("italic", "")), w)
             idx.setdefault((parts[0], w), os.path.join(d, fn))
     return idx
 
 
 def collect_fonts(P, merged_families):
-    """쓰인 (family, weight)를 프로젝트 global_assets/fonts 로 복사하고 props용 목록 반환. 3D 라벨용 Pretendard 500/600/700 포함."""
+    """쓰인 (family, weight)를 프로젝트 global_assets/fonts 로 복사하고 props용 목록 반환. 3D 라벨·키트용 Pretendard 500/600/700/800 포함."""
     idx = font_index(P)
-    want = set(merged_families) | {("Pretendard", 500), ("Pretendard", 600), ("Pretendard", 700)}
+    base = ((load_theme(P) or {}).get("font") or {}).get("family") or "Pretendard"   # 디자인 키트 기본 글꼴
+    want = set(merged_families) | {(f, w) for f in {"Pretendard", base} for w in (500, 600, 700, 800)}  # 800: 키트 증감 칩(stat delta)
     dst_dir = os.path.join(P, "global_assets", "fonts")
     os.makedirs(dst_dir, exist_ok=True)
     out, missing = [], []
@@ -135,6 +136,9 @@ def theme_hash(P, sid=None):
         t["styles"] = {k: v for k, v in (t.get("styles") or {}).items() if k in used}
         t["motion"] = {k: v for k, v in (t.get("motion") or {}).items() if k in used}
         t["components"] = {k: v for k, v in (t.get("components") or {}).items() if k in kinds}
+        edits = rj(os.path.join(P, "sections", sid, "edits.json"), {}) or {}
+        if not any(e.get("hl") for e in els) and not any((v or {}).get("hl") for v in (edits.get("elements") or {}).values()):
+            t.pop("textHighlight", None)   # 하이라이트 글자를 안 쓰는 섹션은 그 기본값과 무관
 
     def strip(v):   # 설명 글(label·idea 등)은 그림과 무관
         if isinstance(v, dict):
@@ -143,6 +147,12 @@ def theme_hash(P, sid=None):
             return [strip(x) for x in v]
         return v
     t = strip(t)
+    # 그림 코드 지문: anim.js·Module2Section.tsx가 바뀌면(아이콘·부품 그리는 방식) 키트 값이 같아도 다시 렌더 (2026-11-19: 코드만 바뀐 장면이 안 바뀌던 문제)
+    code = hashlib.sha1()
+    for cp in (os.path.join(TPL, "studio", "anim.js"), os.path.join(TPL, "remotion", "Module2Section.tsx")):
+        if os.path.exists(cp):
+            code.update(open(cp, "rb").read().replace(b"\r\n", b"\n"))
+    t["_code"] = code.hexdigest()[:12]
     return hashlib.sha1(json.dumps(t, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()[:12]
 
 
@@ -203,6 +213,9 @@ def render(P, sid, draft=False, scale=None, with_audio=True, still=None, frames=
         cmd = m2env.remotion_cli(REMOTION) + ["render", "codex-workspace/module2/index.ts", "Module2Section", out]
         if not props["withAudio"]:
             cmd.append("--muted")
+        # 색 규격: 원본 영상(BT.709, tv 범위)과 같게. 기본값(JPEG 프레임 → yuvj420p·BT.601·pc 범위)이면 합본에서 사람 피부가
+        # 누렇고 대비가 낮아 보인다(2026-11-20 사용자: "합본 용미니와 섹션 용미니 색조가 다르다"). 프레임도 PNG(무손실)로.
+        cmd += ["--image-format=png", "--pixel-format=yuv420p", "--color-space=bt709", "--crf=16"]
         if frames:
             cmd.append("--frames=%s" % frames)
     cmd += ["--props=%s" % pp, "--public-dir=%s" % P, "--gl=angle", "--scale=%s" % scale, "--log=error"]

@@ -2,7 +2,7 @@
   "name": "video-agent-system",
   "displayName": "Video Production Agent System",
   "description": "영상 제작 에이전트 시스템. 모듈2(경영전략회의 발표영상: 민감정보 마스킹 + 로컬 웹 스튜디오 섹션 리뷰 + 데이터 구동 Remotion·3D + HeyGen/ElevenLabs) + 모듈1(기본영상+기본음성: 다이어그램 장표 + Typecast TTS + ffmpeg 합본, 아바타 없음) + 풀 파이프라인(main). 메인 + 20개 전문 서브에이전트(글작가, 연출, 스토리보드, 콘티, 장표검수, 타이밍검수, 디자인비평, 음성검수, 리모션검수, 최종영상검수, 슈퍼톤, 헤이젠, 리모션, 프리미어 등) + cycle manager 도구.",
-  "version": "0.37.0",
+  "version": "0.40.0",
   "author": {
     "name": "Sam",
     "email": "ekswlsgud@gmail.com"

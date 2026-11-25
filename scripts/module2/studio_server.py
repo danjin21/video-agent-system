@@ -547,6 +547,7 @@ class H(BaseHTTPRequestHandler):
                                "voice_id": (cfg.get("voice") or {}).get("voice_id", "") if (cfg.get("voice") or {}).get("provider") == "heygen" else ""},
                     "elevenlabs": {"key_set": bool(s.get("ELEVENLABS_API_KEY")),
                                    "voice_id": (cfg.get("voice") or {}).get("voice_id", "") if (cfg.get("voice") or {}).get("provider") in (None, "elevenlabs") else ""},
+                    "envato": {"key_set": bool(s.get("ENVATO_API_TOKEN"))},
                     "voice_provider": (cfg.get("voice") or {}).get("provider")})
             if path == "/api/voice-samples":
                 vd = os.path.join(P, "global_assets", "voice_samples")
@@ -691,6 +692,13 @@ class H(BaseHTTPRequestHandler):
                     cfg.setdefault("voice", {}).update({"provider": "elevenlabs", "voice_id": b["voice_id"].strip()})
                     save_project_cfg(cfg)
                 return self.send_json({"ok": True})
+            if path == "/api/accounts/envato":
+                b = self.body_json()
+                if b.get("api_key"):
+                    write_secret("ENVATO_API_TOKEN", b["api_key"].strip())   # 값은 출력·로그하지 않는다
+                return self.send_json({"ok": True})
+            if path == "/api/accounts/envato/test":
+                return self.send_json(test_envato())
             if path == "/api/accounts/heygen/test":
                 return self.send_json(test_heygen())
             if path == "/api/accounts/elevenlabs/test":
@@ -839,6 +847,25 @@ def test_heygen():
     else:
         checks.append({"name": "음성 보이스", "ok": False, "msg": "HeyGen voice_id가 없습니다 (음성을 HeyGen으로 만들 때 필요)."})
     return {"ok": all(c["ok"] for c in checks if c["name"] != "아바타" or aid), "checks": checks, "avatar": avatar, "tested": now()}
+
+
+def test_envato():
+    """Envato 개인 토큰 확인 (Market API). 토큰 값은 응답·로그에 넣지 않는다."""
+    import urllib.request
+    key = read_secrets().get("ENVATO_API_TOKEN")
+    if not key:
+        return {"ok": False, "checks": [{"name": "키", "ok": False, "msg": "Envato 개인 토큰이 없습니다 (build.envato.com → Create a token)"}]}
+    checks = []
+    for name, url in (("계정", "https://api.envato.com/v1/market/private/user/username.json"),
+                      ("검색", "https://api.envato.com/v1/discovery/search/search/item?term=business&page_size=1")):
+        try:
+            rq = urllib.request.Request(url, headers={"Authorization": "Bearer " + key, "User-Agent": "module2-studio"})
+            with urllib.request.urlopen(rq, timeout=20) as r:
+                d = json.loads(r.read().decode("utf-8"))
+            checks.append({"name": name, "ok": True, "msg": ("사용자 " + d.get("username", "")) if "username" in d else "검색 가능 (%s건)" % d.get("total_hits", "?")})
+        except Exception as e:  # noqa: BLE001
+            checks.append({"name": name, "ok": False, "msg": str(e)[:200]})
+    return {"ok": all(c["ok"] for c in checks), "checks": checks}
 
 
 def test_elevenlabs():

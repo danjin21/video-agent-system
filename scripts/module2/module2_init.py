@@ -201,6 +201,11 @@ def main():
     if not os.path.exists(themep):
         os.makedirs(os.path.dirname(themep), exist_ok=True)
         shutil.copy2(os.path.join(TEMPLATE, "theme.json"), themep)
+    # 설계 키트(kit.py + README): 섹션 설계 스크립트(sections_*.py)가 쓰는 짧은 표기. 있으면 덮지 않음
+    for fn in ("kit.py", "README.md"):
+        src, dst = os.path.join(TEMPLATE, "design", fn), os.path.join(P, "design", fn)
+        if os.path.exists(src) and not os.path.exists(dst):
+            shutil.copy2(src, dst)
     made = 0
     for i, s in enumerate(secs):
         sid = "s%02d" % (i + 1)

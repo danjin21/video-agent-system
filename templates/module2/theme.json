@@ -11,7 +11,8 @@
     "white": "#ffffff",
     "bg": "#ffffff",
     "chipBlue": "#eef3ff",
-    "chipCoral": "#ffeded"
+    "chipCoral": "#ffeded",
+    "purple": "#7a3ff2"
   },
   "colorLabels": {
     "blue": "주인공 · 강조",
@@ -23,7 +24,13 @@
     "white": "흰색",
     "bg": "장표 배경",
     "chipBlue": "칩 바탕(파랑)",
-    "chipCoral": "칩 바탕(코랄)"
+    "chipCoral": "칩 바탕(코랄)",
+    "purple": "과제 · 보조 강조 (빨강 대신)"
+  },
+  "font": {
+    "label": "기본 글꼴",
+    "idea": "영상 전체 글꼴. 바꾸면 모든 글자 양식·키트 그림·마일스톤이 함께 바뀐다. 글꼴 파일은 global_assets/fonts/ 또는 Windows에 설치 (2026-11-19 사용자: Paperlogy)",
+    "family": "Pretendard"
   },
   "styles": {
     "title": {
@@ -45,14 +52,14 @@
     },
     "kicker": {
       "label": "장면 머리말 (지금 화두 이름)",
-      "idea": "가운데 큰 내용 위에 '지금 무엇 이야기'인지 작게.",
+      "idea": "장면 머리말 = 지금 화두의 제목. 크고 굵게(62·800) — 작으면 제목처럼 안 보인다(2026-11-19 사용자).",
       "x": 160,
       "w": 1600,
-      "h": 60,
+      "h": 82,
       "font": {
         "family": "Pretendard",
-        "size": 40,
-        "weight": 700,
+        "size": 62,
+        "weight": 800,
         "color": "$blue",
         "align": "center",
         "lineHeight": 1.25,
@@ -130,7 +137,7 @@
       "font": {
         "family": "Pretendard",
         "size": 36,
-        "weight": 700,
+        "weight": 800,
         "color": "$blue",
         "align": "center",
         "lineHeight": 1.25,
@@ -138,18 +145,18 @@
       }
     },
     "chip_alert": {
-      "label": "칩 (코랄)",
-      "idea": "위험·제약·반전 사실. 크게(46) 띄우고 등장 직후 펄스 + 코랄 빛 테두리로 한 번 강조(2026-11-18 사용자).",
+      "label": "칩 (강조 띠)",
+      "idea": "위험·전제·결정타 한 줄. 파란 띠 + 흰 글자(46·800). 빨간 띠는 쓰지 않는다(2026-11-19 사용자: 빨간 띠는 모두 파란색).",
       "h": 84,
-      "fill": "$chipCoral",
-      "radius": 42,
+      "fill": "$blue",
+      "radius": 14,
       "pad": 0,
       "valign": "middle",
       "font": {
         "family": "Pretendard",
         "size": 46,
-        "weight": 700,
-        "color": "$coral",
+        "weight": 800,
+        "color": "$white",
         "align": "center",
         "lineHeight": 1.25,
         "letterSpacing": -0.5
@@ -313,7 +320,7 @@
           "type": "highlight",
           "at": 16,
           "dur": 36,
-          "color": "$coral"
+          "color": "$blue"
         }
       ]
     },
@@ -382,7 +389,12 @@
     },
     "stat": {
       "label": "큰 숫자 카운트업",
-      "idea": "발화 순간 0에서 올라가 멈춤 + 증감 칩. 핵심 수치는 단독 장면."
+      "idea": "발화 순간 0에서 올라가 멈춤 + 증감 칩. 핵심 수치는 단독 장면.",
+      "params": {
+        "deltaScale": 0.3,
+        "deltaMin": 48,
+        "deltaWeight": 800
+      }
     },
     "bars": {
       "label": "막대 차트",
@@ -400,10 +412,18 @@
     },
     "nodes": {
       "label": "노드 다이어그램",
-      "idea": "개념·관계·흐름. 노드 3개 안팎, 말하는 순서대로 등장.",
+      "idea": "개념·관계·흐름. 노드 3개 안팎, 말하는 순서대로 등장. 연결선은 회색 점선이 화살표 쪽으로 흐른다. 노드 icon(money·globe·robot·people·app·pc·market)·img + flipAt: 글자 원이 뒤집혀 움직이는 아이콘으로.",
       "params": {
         "labelGap": 66,
-        "subGap": 54
+        "subGap": 64,
+        "linkColor": "#8a94a6",
+        "linkDash": 1,
+        "linkFlow": 1.2,
+        "arrowGap": 10,
+        "flipDur": 16,
+        "labelMin": 40,
+        "labelWeight": 800,
+        "iconColor": 1
       },
       "paramLabels": {
         "labelGap": "원 아래 라벨 간격 (원 가장자리→라벨 기준선, px)",
@@ -461,6 +481,71 @@
     "stack": {
       "label": "사진 쌓기",
       "idea": "시간 흐름·추억: 사진이 위에서 떨어지며 겹겹이. 마지막 사진(맨 위)에 라벨."
+    },
+    "bars3d": {
+      "label": "3D 쿼터뷰 막대",
+      "idea": "정면 2D 막대로 시작 → 카메라가 쿼터뷰로 돌며 입체가 되고, 막대가 차례로 위로 솟는다. 실적·성장 결정타 1회. (bars3d)",
+      "params": {
+        "rx": -22,
+        "ry": -32,
+        "zoom": 0.8,
+        "depth": 0.8,
+        "perspective": 3600
+      }
+    },
+    "cards3d": {
+      "label": "3D 뒤집기 카드",
+      "idea": "카드 뒷면(색+번호)이 보이다가 정면 3등분 그대로 양옆 카드만 안쪽으로 살짝 꺾이고(병풍, 가로선 평행) 차례로 뒤집혀 앞면 공개 → 다시 정면. mode:\"tilt\"면 예전처럼 무대 전체가 비스듬히. (cards3d)",
+      "params": {
+        "rx": 16,
+        "ry": -20,
+        "zoom": 0.86,
+        "perspective": 3600,
+        "mode": "fold",
+        "fold": 18,
+        "foldZoom": 0.9
+      }
+    },
+    "rankRise": {
+      "label": "순위 상승",
+      "idea": "1·2·3위 입체 막대 + 1위가 더 솟고, 붉은 리본 화살표가 물결치며 오른쪽 위로. 배경도 오른쪽 위로 흐른다. '격차 확대' 결정타. (rankRise)"
+    },
+    "rings": {
+      "label": "과녁 고리",
+      "idea": "가운데 영역에서 한 겹씩 넓어지는 입체 원판, 라벨은 고리 위. '단계적 확대'. (rings)"
+    },
+    "panels3": {
+      "label": "3분할 빗면 패널",
+      "idea": "화면을 비스듬히 셋으로 — 패널마다 아이콘이 움직인다. 원 3개가 반복될 때 대신. (panels3)"
+    },
+    "stackBuild": {
+      "label": "블록 쌓기 → 지도",
+      "idea": "아이콘이 블록이 되어 빈자리에 끼워지고, 다 쌓이면 미국 지도가 파랗게 물든다. 빌드업. (stackBuild)"
+    },
+    "wordSwarm": {
+      "label": "글자 폭증 비행",
+      "idea": "가운데 한 단어(역량)가 100개로 불어나 공간에 흩어지고, 카메라가 휘어지며 사이를 날아 지나간 뒤 화면이 비면 다음 화두가 딱. 화두 전환용. (wordSwarm)",
+      "params": {
+        "count": 100,
+        "size": 120
+      }
+    },
+    "horizon": {
+      "label": "경계 넘어 수평선·태양",
+      "idea": "큰 단어가 가로 일직선(경계)으로 눌리고, 카메라가 그 선을 넘어 나아가면 지평선에서 노란 태양이 뜨며 캡션. '경계를 넘어 새로운 ○○'. (horizon)",
+      "params": {}
+    },
+    "globe": {
+      "label": "3D 지구",
+      "idea": "멀리서 돌며 다가오는 지구(바다·육지) → 한반도가 정면 → 대한민국에서 파란 화살표가 세계로. 육지는 global_assets/geo/world_land.json(없으면 거친 윤곽). (globe)",
+      "params": {
+        "radius": 0.4
+      }
+    },
+    "orgChart": {
+      "label": "조직도 그리기",
+      "idea": "맨 위 회사 상자 아래로 남색 선이 그려지며 부문·팀 상자가 펼쳐지고, 지정한 부서에 파란색이 들어온다. 조직개편·인재 확보. (orgChart)",
+      "params": {}
     }
   },
   "transitions": {
@@ -496,7 +581,7 @@
   },
   "beatAccent": {
     "_idea": "문장(비트)이 시작될 때·긴 문장은 4초마다 화면 변화가 없으면 지금 화면의 주인공 요소에 자동 강조. 매 순간 뭔가 움직이게(2026-11-18 사용자).",
-    "enabled": true,
+    "enabled": false,
     "types": [
       "pulse",
       "lift",
@@ -522,5 +607,12 @@
     "dot": "$blue",
     "hideOpening": true,
     "hideEnding": false
+  },
+  "textHighlight": {
+    "label": "하이라이트 글자",
+    "idea": "장표 안 강조 단어: 말할 때 남색→파랑으로 색만 바뀐다(color, 2026-11-19 사용자: 모두 색만). 다른 효과 shine·marker·pop·glow. 요소 hl:[{text,color,effect,at}]",
+    "color": "$blue",
+    "effect": "color",
+    "dur": 18
   }
 }

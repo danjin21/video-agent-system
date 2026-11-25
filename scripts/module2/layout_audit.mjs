@@ -16,8 +16,9 @@ const asJson = args.includes("--json");
 const only = args.includes("--section") ? args[args.indexOf("--section") + 1] : null;
 const rj = (p, d = null) => { try { return JSON.parse(fs.readFileSync(p, "utf8")); } catch { return d; } };
 
-const GAP_MIN = 24;           // 서로 다른 내용 사이 최소 숨 쉴 간격(px) — 2026-11-18 사용자: '간격이 안 맞아 겹치고 붙어 있다'
-const GAP_SHAPE = 14;         // 글자와 남의 도형(원·막대) 사이 최소 간격
+const GAP_MIN = 32;           // 서로 다른 내용 사이 최소 숨 쉴 간격(px) — 2026-11-18 사용자: '간격이 안 맞아 겹치고 붙어 있다' / 11-19 '좁은 곳 넓혀' 24→32
+const GAP_SHAPE = 20;         // 글자와 남의 도형(원·막대) 사이 최소 간격
+const HEAD_GAP = 64;          // 머리말(kicker) 아래 내용까지 최소 간격 — 2026-11-19 사용자: '넓어지는 경쟁' 아래가 좁다
 const PAD_MIN = 20;           // 카드·칩 같은 테두리 안 글자는 가장자리에서 최소 이만큼 (2026-11-18 사용자: '대체 Co-GP' 카드 끝에 붙음)
 const FRAME = { w: 1920, h: 1080, margin: 24 };
 
@@ -84,7 +85,7 @@ function audit(sid) {
     for (const el of m.elements) {
       const st = A.stateAt(el, f);
       if (!st.visible || st.opacity < 0.6) continue;
-      if (el.type === "text") { const b = textBox(el); if (b) texts.push(Object.assign(b, { id: el.id, label: String(el.text).slice(0, 24), own: el.id })); }
+      if (el.type === "text") { const b = textBox(el); if (b) texts.push(Object.assign(b, { id: el.id, label: String(el.text).slice(0, 24), own: el.id, head: el.style === "kicker" })); }
       else if (el.type === "diagram") {
         if (["chapter", "ghost"].includes(el.kind)) continue;
         for (const p of A.collectDiagram(el, f - el.t.in)) {
@@ -107,6 +108,14 @@ function audit(sid) {
         if (fr.own !== a.own) continue;
         const m = Math.min(a.x - fr.x, fr.x + fr.w - (a.x + a.w), a.y - fr.y, fr.y + fr.h - (a.y + a.h));
         if (m < PAD_MIN) add("edge", a, { id: fr.id, kind: "카드 테두리" }, m);
+      }
+    }
+    // 머리말 아래: 바로 밑 내용(글자·도형·카드)이 HEAD_GAP보다 가까우면 → 제목처럼 숨 쉴 자리가 없다
+    for (const a of texts.filter((x) => x.head)) {
+      for (const b of [...texts, ...shapes, ...frames]) {
+        if (b.id === a.id || b.y < a.y + a.h - 2) continue;
+        const g = gap(a, b);
+        if (g.dx === 0 && g.dy < HEAD_GAP) add("headgap", a, b, g.dy);
       }
     }
     for (let i = 0; i < texts.length; i++) {
@@ -136,7 +145,7 @@ const sids = (cfg.sections || []).map((s) => s.id).filter((s) => !only || s === 
 const all = sids.flatMap(audit);
 if (asJson) console.log(JSON.stringify(all));
 else {
-  const KN = { overlap: "겹침", crossing: "선이 글자를 가로지름", edge: "테두리에 붙음", milestone: "마일스톤 바와 겹침", crowded: "너무 붙음", offscreen: "화면 밖" };
+  const KN = { overlap: "겹침", crossing: "선이 글자를 가로지름", edge: "테두리에 붙음", milestone: "마일스톤 바와 겹침", crowded: "너무 붙음", headgap: "머리말 아래가 좁음", offscreen: "화면 밖" };
   for (const x of all) console.log(`${x.section} ${String(x.t).padStart(5)}s  ${KN[x.kind]}  ${x.a}${x.b ? " ↔ " + x.b : ""}${x.px ? ` (${x.px}px)` : ""}`);
-  console.log(`\n합계 ${all.length}건 — 겹침 ${all.filter((x) => x.kind === "overlap").length} · 가로지름 ${all.filter((x) => x.kind === "crossing").length} · 테두리 ${all.filter((x) => x.kind === "edge").length} · 붙음 ${all.filter((x) => x.kind === "crowded").length} · 화면 밖 ${all.filter((x) => x.kind === "offscreen").length}`);
+  console.log(`\n합계 ${all.length}건 — 겹침 ${all.filter((x) => x.kind === "overlap").length} · 가로지름 ${all.filter((x) => x.kind === "crossing").length} · 테두리 ${all.filter((x) => x.kind === "edge").length} · 붙음 ${all.filter((x) => x.kind === "crowded").length} · 머리말 아래 ${all.filter((x) => x.kind === "headgap").length} · 화면 밖 ${all.filter((x) => x.kind === "offscreen").length}`);
 }

@@ -1,3 +1,73 @@
+## 0.40.0 — 2026-11-25
+- **다른 사람이 설치해도 같은 방식으로**: 2027 전략회의 프로젝트에서만 쓰던 도구를 플러그인으로 옮김.
+  - 설계 키트 템플릿 `templates/module2/design/kit.py`·`README.md` — module2_init이 프로젝트 `design/`에 복사. 섹션 설계 스크립트(sections_*.py·scenes_*.py) 방식과 사용자 확정 연출 규칙(명사형 타이틀·강조 1회·번짐 금지·흔들림 금지·가운데 시선·실사 위 흰 마일스톤). 전략 카드판 항목은 프로젝트 `design/strategies.json`.
+  - `scripts/module2/splice_real.py <project> plan|make` — 민감 실값 조각 끼우기(HeyGen 운반 문장 / ElevenLabs 문맥). 읽는 형태는 토큰 `say` 또는 숫자 한자어 자동 변환(실값을 코드에 두지 않음).
+  - `scripts/module2/voice_takes.py <project> review|gen|use` — 문장별 듣기 폴더(번호·시각 목록), 한 문장만 여러 번 새로 만들어 비교 파일, 골라 교체(기존 보관·시간 다시 잡기). 생성본은 리미터 없이 이득만 + 앞뒤 5ms 페이드.
+- 문서: module2.md 빠른 시작·§4-0-0c 설계 스크립트·§7 문장 단위 수정 루프·음량 규칙·목소리 교체 절차·§7-3 구현, SKILL.md 6-3.
+
+## 0.39.6 — 2026-11-20
+- `cards3d`: `zoomTo{index,at,dur,scale}`(그 카드가 가운데로 오며 커지고 나머지 사라짐), 카드별 `front`·`backNum`, 부제 단어 하이라이트 `hl[{text,at}]`(sweep), `pop:false`, 여러 줄 글자는 가장 긴 줄 기준 맞춤.
+- `nodes.orb`: 입체 구슬(그러데이션·반사광·바닥 그림자) + 흰 아이콘. 새 아이콘 `lock`·`book`.
+- `stackBuild.center`: 블록 `money:true`(양옆에서 지폐가 날아 들어옴), `flag:true`(지도 우측 상단 성조기 원).
+- 새 부품 `passArrow`: 굵은 화살표가 왼→오로 지나감.
+- 프로젝트 kit `seven_board`/`with_seven`: 챕터 간지 대신 7개 전략 카드판(지난 전략 앞면, 이번 전략은 이름이 들릴 때 뒤집혀 가운데로 확대).
+
+## 0.39.5 — 2026-11-20
+- **확대 효과 정리(사용자: "확대 두 번 되는 효과 다 없애라")**: 테마 `beatAccent.enabled` 기본 false(템플릿 theme.json도). `nodes`는 기본 페이드 등장(톡 커짐은 `pop:true`). 하이라이트 `shine`·`glow`의 파란 번짐 제거.
+- `panels3.still`: 튀어 오르지 않고 딱 나온 뒤 멈춤(위아래 흔들림·아이콘 움직임 없음).
+- `stackBuild.center`: 첫 블록이 화면 가운데 높이, 다음 블록은 위에서 내려와 얹히며 더미가 한 칸씩 내려가 새 블록이 늘 가운데. 지도 등장 때 더미가 아래로 빠지고 미국 지도가 가운데(`cy`).
+- 스튜디오 섹션 리뷰: 재생 줄에 **'다음 섹션 자동'** 체크(브라우저에 기억) — 섹션이 끝나면 다음 섹션을 열어 처음부터 이어서 재생.
+- `bars.annotate` 기본 = 증가 점선(앞 막대 높이 점선 + 늘어난 부분 점선 상자 + 옆에 증가율). 예전 빨간 화살표는 `style:"arrow"`.
+- 에이전트·스킬 문서: **모든 타이틀은 명사형**, 강조·확대는 한 번, 번짐 금지, 구어체 군말 금지 명시.
+
+## 0.39.4 — 2026-11-20
+- **자동 강조(beatAccent) 한 요소 한 번만**: 문장 시작·4초마다 같은 그래프가 두 번 올라가고 두 번 커지던 문제(사용자: "한번 강조하면 한번만, 애니메이션을 몇 번 쓰면 어색"). 수동 강조가 있거나 자동 강조를 한 번 받은 요소는 다시 안 고름(`beatAccent.once:false`면 예전처럼). 그래프류(line·bars·bars3d·rings·stackBuild·stat)는 자동 강조 대상 제외.
+- 마일스톤 바: 어두운 화면(전체화면 실사·아바타·배경 사진·파란 간지·남색 덮개) 구간에서는 선·점·글자 모두 흰색, 글자 테두리 없음. assemble이 섹션 layout/timeline에서 구간(`dark`)을 계산해 넘긴다.
+- `nodes` `pop:false`(노드가 톡 커지지 않고 페이드) + 강조 `zoom{amount}`(큰 묶음도 줄이지 않고 한 번 확대) — "다 나온 뒤 한 번만 확대".
+- 글자 하이라이트 효과 `sweep`: 처음부터 강조색, 말하는 순간(at) 흰 빛줄기가 왼→오로 한 번 훑음. `kit.hl(..., effect="sweep")`.
+- `nodes` 노드 `grow{at,steps:3,to,every,dur}`: 톡·톡·톡 단계 확대 후 그 크기로 머묾(연결선 끝도 따라감).
+- 민감 실값 스플라이스(프로젝트 스크립트 `splice_real.py`, module2.md §7-3 구현 시안): 무음 구간에 실단어 조각(읽는 형태, 문맥 인자는 마스킹본만)을 끼우고 앞뒤 1초 말소리에 음량 맞춤 → words.json에 실단어 추가 → `--retime` → 디자인 재실행.
+
+## 0.39.3 — 2026-11-20
+- **색 규격 통일 (BT.709·tv 범위)**: Remotion 기본 렌더는 JPEG 프레임 → `yuvj420p`·BT.601·pc 범위라, 원본 영상(BT.709·tv)·스튜디오 미리보기와 합본의 사람 피부색·대비가 달라 보였다(사용자: "합본 용미니와 섹션 용미니 색조가 다르다").
+  - render_section·전환 조각: `--image-format=png --pixel-format=yuv420p --color-space=bt709 --crf=16`
+  - assemble: 이어 붙이기·마일스톤 겹치기 모두 BT.709·tv로 변환·태그(`-colorspace/-color_primaries/-color_trc bt709 -color_range tv`), 마일스톤 바(RGBA)도 BT.709로 변환 후 겹침. 인코딩 veryfast·crf18 → medium·crf15.
+  - 전환 조각 캐시 키에 색 규격 포함(예전 조각 재사용 방지). 기존 프로젝트는 섹션을 다시 렌더해야 적용된다.
+
+## 0.39.2 — 2026-11-20
+- assemble: BGM 앞부분만 깔기 `bgm.until`(섹션 id — 그 섹션 시작에서 끝) / `bgm.end_sec` + `bgm.fade_out`. 덕킹 세기 `bgm.duck_ratio`(기본 8 — 목소리 밑 음악이 -33dB까지 내려가 사실상 안 들림. 2면 약 -20dB로 계속 들림, volume 0.4와 함께 권장).
+- avatar: HeyGen 웹 25fps → 30fps는 minterpolate로 중간 프레임 생성(프레임 반복으로 사람 움직임이 끊기던 문제).
+
+## 0.39.1 — 2026-11-20
+- **avatar 에이전트**: HeyGen v1·v2 종료(2026-10-31) 반영 — 업로드 `POST /v3/assets`(multipart `file`, 응답 `data.asset_id`), 상태 `GET /v3/videos/{id}`(pending·processing·completed·failed, `failure_code`). v1 업로드는 HTTP 500 `40099`.
+- avatar: 음성은 섹션 하나 = 연속 WAV 하나(timeline audio를 섹션 길이 그대로 합침) → 아바타 길이 = 섹션 길이.
+- avatar: `MOVIO_PAYMENT_INSUFFICIENT_CREDIT`(API 크레딧 없음, 웹 크레딧과 별개) → 재시도 금지, **HeyGen 웹에서 직접 만들기 순서 가이드** 작성 + 받은 mp4 가져오기(길이 1초 넘게 다르면 거부, 1920×1080·30fps·무음으로 맞춤).
+
+## 0.39.0 — 2026-11-19
+- 새 부품 `wordSwarm`(한 단어 100개 폭증 + 휘는 카메라 비행) · `horizon`(단어→경계선→넘어서 지평선·노란 태양·캡션) · `globe`(정사영 3D 지구: 다가오며 회전, 한반도, 파란 대권 화살표; 육지 데이터 `land` 또는 내장 거친 윤곽) · `orgChart`(선이 그려지는 조직도 + 지정 부서 파란색).
+- `bars3d`: 증가분 입체 `add`, 숫자 시점 `valueAt/valueDur`.
+- `cards3d`: 기본 `mode:"fold"`(정면 3등분, 양옆만 살짝 꺾인 병풍 — 가로선 평행). 예전 기울기 = `mode:"tilt"`.
+- 색 `purple` 추가(테마·KIT_COLORS).
+- `sync=False` 요소는 발음 맞춤·word_sync 검사 제외.
+- 디자인 키트 썸네일 데모: wordSwarm·horizon·globe·orgChart, bars3d(증가분).
+
+## 0.38.0 — 2026-11-19
+- 3D 부품 `bars3d`(정면 2D → 쿼터뷰 3D 카메라 전환 → 막대 입체·솟음, annotate) · `cards3d`(3D로 기울며 카드 차례로 뒤집기, 카드별 flipAt, settle). CSS 3D(HTML_KINDS)라 스튜디오 미리보기 = 렌더. 키트 params rx·ry·zoom·depth·perspective.
+- 디자인 키트 탭: 부품 썸네일 클릭 → 움직임 재생(▶).
+- 하이라이트 글자 `hl`(textHTML 공용: shine·color·marker·pop·glow) + 스튜디오 인스펙터 선택 UI + 키트 기본값 `textHighlight` + kit.hl()(발음 자동 맞춤).
+- 노드: 아이콘 7종(money·globe·robot·people·pc·market·app img) + flipAt 뒤집기, 연결선 회색 흐르는 점선·화살표 머리 원 밖, 라벨 40·800.
+- keyword `bgGhost`(뒤에 크고 옅은 두 줄). 머리말 62·800. 경고 칩 파란 띠+흰 글자, 배너 기본 파랑(빨간 띠 없음).
+- 패널(panels3)·블록(stackBuild) 위 아이콘도 색 아이콘(흰 원판 위) — `badgeIcon`.
+- 실사 B-roll 기본 = 빈 자리(Envato 영상 넣을 곳), AI 영상은 요청 시에만.
+- 노드 아이콘 색칠(키트 nodes.iconColor=1): 연한 원 + 원 색 테두리 위에 진한 윤곽·색 면 아이콘(흰 아이콘 대신). 패널·블록 위 아이콘은 흰색 유지.
+- 간격: 배치 검사 붙음 24→32px, 도형 14→20px, **머리말(kicker) 아래 64px 미만 = 오류**(headgap). 머리말 기본 y 230→206, stat 라벨 간격·노드 부제 간격(subGap 64) 넓힘.
+- TTS: 비트별 `voice_settings` 덮어쓰기. 음성 시안 채택 `adopt_voice.py`(ElevenLabs Forced Alignment로 낱말 시간).
+- 기본 글꼴 키트 설정 `font.family`(디자인 키트 탭 "기본 글꼴"): 글자 양식·키트 그림(anim.js FONT)·마일스톤·kit.text() 전체가 따라간다. 글꼴 파일 이름 앞 숫자(Paperlogy-7Bold) 굵기 인식.
+- 새 부품 `rankRise`·`rings`·`panels3`·`stackBuild`(미국 지도) + 노드 아이콘 12종 추가·여러 아이콘(icon 배열).
+- AI 영상 B-roll `ai_video.py`(ElevenLabs /v1/flows/video, Veo 3.1 fast) · Envato 소재 `envato_assets.py` + 스튜디오 계정 연결 Envato 카드(ENVATO_API_TOKEN).
+- 강조 `echo`(메아리 흔들림): 흔들리며 잔상 3겹이 바깥으로 퍼지며 사라짐. `emphasisFilter` 공용(스튜디오·렌더), `stat`은 SVG 안에서 숫자에만 잔상.
+- `stat` 증감 칩(delta): 숫자 크기에 비례(×0.3, 최소 48) + ExtraBold 800. 키트 `components.stat.params`(deltaScale·deltaMin·deltaWeight)로 조정. 렌더 기본 글꼴에 Pretendard 800 추가.
+
 ## 0.37.0 — 2026-11-18
 - 움직임: 등장 flip·drop·zoom-in, 강조 bounce·lift·shake·wiggle 추가(`transformOf` 공용 — 회전·3D 뒤집기). 큰 요소는 강조 세기 자동 축소.
 - 카드: 기본 뒤집기(뒷면 색+번호 → 앞면), 제목 안쪽 여백 자동 맞춤(최소 36, 두 줄 줄바꿈), 좁은 카드 가운데 정렬. 배치 검사 `edge`(카드·칩 테두리 여백 20px 미만 = 오류).

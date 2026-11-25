@@ -1,5 +1,5 @@
 // 모듈2 스튜디오 — 섹션 리뷰·직접 편집·코멘트·마스킹 검토·계정 연결
-import { mergeSection, stateAt, displayText, richSegments, fmtTime, ENTER_EFFECTS, EXIT_EFFECTS, EMPHASIS, DIAGRAM_KINDS, diagramSVG, brollSVG, brollCamera, resolveColors, applyKitTheme, setMediaResolver, emphasisShadow, transformOf } from "./anim.js";
+import { mergeSection, stateAt, displayText, richSegments, fmtTime, ENTER_EFFECTS, EXIT_EFFECTS, EMPHASIS, DIAGRAM_KINDS, diagramSVG, brollSVG, brollCamera, resolveColors, applyKitTheme, setMediaResolver, emphasisShadow, emphasisFilter, transformOf, textHTML, HL_EFFECTS } from "./anim.js";
 
 // ------------------------------------------------------------------ 유틸
 const $ = (s, r = document) => r.querySelector(s);
@@ -409,15 +409,14 @@ function applyStatic(el, node) {
   node.classList.toggle("sel", S.sel === el.id);
 }
 
-function setText(box, el, st) {
+function setText(box, el, st, f = 1e9) {
   const raw = el.text || "";
-  if (!raw.includes("[[")) { box.textContent = displayText(raw, st); return; }
-  const key = JSON.stringify([raw, st.text, st.count]);
-  if (box._key === key) return;
-  box._key = key;
-  box.innerHTML = "";
-  const accent = (el.font && el.font.accentColor) || "#296ef9";
-  for (const s of richSegments(raw, st)) box.append(s.accent ? h("span", { style: { color: accent } }, s.text) : s.text);
+  const hasHl = el.hl && el.hl.length;
+  if (!raw.includes("[[") && !hasHl) { box.textContent = displayText(raw, st); box._key = null; return; }
+  const html = textHTML(el, st, f);   // [[강조]]·하이라이트 글자 — 렌더와 같은 함수
+  if (box._key === html) return;
+  box._key = html;
+  box.innerHTML = html;
 }
 
 // 연출 키트 요소 (anim.js의 같은 함수 → 렌더와 동일). 같은 프레임이면 다시 그리지 않는다.
@@ -455,6 +454,7 @@ function drawFrame() {
       node.style.transform = "";
       node.style.clipPath = "";
       node.style.boxShadow = "";
+      node.style.filter = "";
       if (el.type === "text" && node._content) setText(node._content, el, { text: 1, count: 1 });
     } else {
       node.classList.remove("ghost");
@@ -463,7 +463,8 @@ function drawFrame() {
       node.style.transform = transformOf(st);
       node.style.clipPath = st.clipL || st.clipR ? `inset(-20px ${st.clipR}% -20px ${st.clipL}%)` : "";
       node.style.boxShadow = emphasisShadow(st);
-      if (el.type === "text" && node._content) setText(node._content, el, st);
+      node.style.filter = emphasisFilter(st);
+      if (el.type === "text" && node._content) setText(node._content, el, st, f);
     }
     if (el.type === "diagram" || el.type === "broll") drawKit(el, node, S.edit ? 100000 : f - el.t.in);
     if (node._video && !S.playing) {
@@ -487,6 +488,8 @@ function renderTransport() {
     h("button", { class: "ghost", onclick: () => seek(0), title: "처음으로" }, "⏮"),
     h("input", { type: "range", id: "scrub", min: 0, max: Math.max(0, S.m.duration - 1), step: 1, value: S.frame, oninput: (e) => seek(+e.target.value) }),
     h("span", { class: "time small", id: "tmLabel" }),
+    h("label", { class: "small", title: "섹션이 끝나면 다음 섹션을 열어 이어서 재생", style: { display: "inline-flex", alignItems: "center", gap: "4px", whiteSpace: "nowrap" } },
+      h("input", { type: "checkbox", checked: localStorage.getItem("m2_autoNext") === "1", onchange: (e) => localStorage.setItem("m2_autoNext", e.target.checked ? "1" : "0") }), "다음 섹션 자동"),
     S.audio.length ? h("span", { class: "chip", title: "비트 음성 파일과 함께 재생" }, `음성 ${S.audio.length}`) : h("span", { class: "chip", title: "아직 음성이 없어 무음 재생" }, "무음"),
     renderFile() ? h("select", { title: "미리보기 = 브라우저 계산(편집 즉시 반영) / 렌더본 = Remotion으로 실제 렌더한 영상(3D 포함)", onchange: (e) => setViewMode(e.target.value) },
       h("option", { value: "preview", selected: S.viewMode !== "render" }, "보기: 미리보기"),
@@ -520,7 +523,17 @@ function play() {
   const loop = () => {
     if (!S.playing) return;
     S.frame = f0 + ((performance.now() - t0) / 1000) * S.m.fps;
-    if (S.frame >= S.m.duration - 1) { S.frame = S.m.duration - 1; drawFrame(); return stop(); }
+    if (S.frame >= S.m.duration - 1) {
+      S.frame = S.m.duration - 1; drawFrame(); stop();
+      // 다음 섹션 자동: 끝나면 다음 섹션을 열고 처음부터 이어서 재생 (2026-11-20 사용자: "섹션 리뷰에서 하나씩 보면 자동으로 넘어가게")
+      if (localStorage.getItem("m2_autoNext") === "1") {
+        const ids = S.project.sections.map((x) => x.id), k = ids.indexOf(S.cur);
+        if (k >= 0 && k + 1 < ids.length) {
+          loadSection(ids[k + 1]).then(() => { S.frame = 0; drawFrame(); setTimeout(() => { if (!S.playing) play(); }, 400); });
+        }
+      }
+      return;
+    }
     for (const a of S.audio) {
       const dur = (a.el.duration || 0) * S.m.fps;
       if (!a.started && S.frame >= a.at && (!dur || S.frame < a.at + dur)) {
@@ -1007,6 +1020,7 @@ function inspector(el) {
         h("div", {}, h("label", {}, "색"), h("input", { type: "color", value: toHex(f.color || "#000000"), onchange: (e) => set({ font: { color: e.target.value } }) }))),
       h("div", { class: "small muted", style: { marginTop: "4px" } }, "일부만 강조: 문구에서 [[강조할 부분]]으로 감싸기 → ",
         h("input", { type: "color", value: toHex(f.accentColor || "#296ef9"), style: { width: "36px", height: "22px", verticalAlign: "middle" }, onchange: (e) => set({ font: { accentColor: e.target.value } }) })),
+      hlPanel(el, set),
       h("div", { class: "g2" },
         h("div", {}, h("label", {}, "정렬"), h("select", { onchange: (e) => set({ font: { align: e.target.value } }) }, ["left", "center", "right"].map((a) => h("option", { value: a, selected: a === (f.align || "left") }, { left: "왼쪽", center: "가운데", right: "오른쪽" }[a])))),
         h("div", {}, h("label", {}, "세로 정렬"), h("select", { onchange: (e) => set({ valign: e.target.value }) }, ["top", "middle", "bottom"].map((a) => h("option", { value: a, selected: a === (el.valign || "top") }, { top: "위", middle: "가운데", bottom: "아래" }[a])))))) : null,
@@ -1056,6 +1070,39 @@ function inspector(el) {
         Object.entries(EMPHASIS).map(([k, v]) => h("button", { class: "ghost small", onclick: () => set({ emphasis: (t.emphasis || []).concat([{ at: Math.round(S.frame), type: k, dur: 20 }]) }, true) }, `+ ${v} 지금`)))),
     h("div", { class: "small muted", style: { marginTop: "8px" } }, "바꾼 값은 자동 저장되고, 영상 렌더에 숫자 그대로 들어갑니다."));
   return box;
+}
+// 하이라이트 글자: 문구 안에서 강조할 글자 · 색 · 효과를 고른다 (애니메이션: 기본 남색→파랑으로 바뀌며 한 번 반짝)
+function hlPanel(el, set) {
+  const list = el.hl || [], fps = S.m ? S.m.fps : 30;
+  const colors = Object.assign({ blue: "#296ef9", navy: "#0b1f4b", coral: "#ff5050" }, (S.theme && S.theme.colors) || {});
+  const names = ["blue", "navy", "coral", "gray"].filter((k) => colors[k]);
+  const txt = h("input", { placeholder: "강조할 글자 (문구 그대로)", style: { flex: "1" } });
+  const pick = h("button", { class: "ghost small", title: "미리보기·문구 칸에서 드래그로 고른 글자를 가져옵니다",
+    onclick: () => { const sel = String(window.getSelection ? window.getSelection() : "").trim(); if (sel) txt.value = sel; else toast("먼저 화면이나 문구 칸에서 글자를 드래그해 고르세요"); } }, "선택한 글자");
+  const col = h("select", {}, names.map((k) => h("option", { value: "$" + k, selected: k === "blue" }, k)), h("option", { value: "custom" }, "직접…"));
+  const colPick = h("input", { type: "color", value: "#296ef9", style: { width: "36px" } });
+  const eff = h("select", {}, Object.entries(HL_EFFECTS).map(([k, v]) => h("option", { value: k }, v)));
+  const add = (at) => {
+    const t = txt.value.trim();
+    if (!t) return toast("강조할 글자를 적거나 고르세요");
+    if (!(el.text || "").replace(/\[\[|\]\]/g, "").includes(t)) return toast("문구 안에 그 글자가 없어요: " + t, 4000);
+    const item = { text: t, color: col.value === "custom" ? colPick.value : col.value, effect: eff.value };
+    if (at != null) item.at = at;
+    set({ hl: list.concat([item]) }, true);
+  };
+  return h("div", { class: "hlbox" },
+    h("label", {}, "하이라이트 글자 — 고른 글자가 색이 바뀌며 반짝"),
+    h("div", { class: "row", style: { flexWrap: "wrap", gap: "4px" } },
+      list.length ? list.map((x, i) => h("span", { class: "chip" },
+        h("b", { style: { color: x.color && x.color[0] === "#" ? x.color : colors[(x.color || "$blue").slice(1)] } }, x.text),
+        ` · ${HL_EFFECTS[x.effect || "shine"] || x.effect}${x.at != null ? " @" + sec(x.at, fps) : " (처음부터)"}`,
+        h("a", { href: "#", onclick: (e) => { e.preventDefault(); const l2 = list.slice(); l2.splice(i, 1); set({ hl: l2.length ? l2 : null }, true); } }, " ✕")))
+        : h("span", { class: "small muted" }, "없음")),
+    h("div", { class: "row", style: { gap: "4px", marginTop: "4px" } }, txt, pick),
+    h("div", { class: "row", style: { gap: "4px", marginTop: "4px" } }, h("span", { class: "small" }, "색"), col, colPick, h("span", { class: "small" }, "효과"), eff),
+    h("div", { class: "row", style: { gap: "4px", marginTop: "4px" } },
+      h("button", { class: "small", onclick: () => add(Math.round(S.frame)) }, "+ 지금 시점에"),
+      h("button", { class: "ghost small", onclick: () => add(null) }, "+ 처음부터 강조")));
 }
 function toHex(c) {
   if (/^#[0-9a-f]{6}$/i.test(c)) return c;
@@ -1275,7 +1322,7 @@ async function viewAccounts(app) {
     h("div", { class: "row" }, h("h3", { style: { margin: 0 } }, "ElevenLabs — 음성 복제·음악"), h("span", { class: "spacer" }), h("span", { class: "chip " + (acc.elevenlabs.key_set ? "locked" : "needs_user") }, acc.elevenlabs.key_set ? "키 있음" : "키 없음")),
     h("ol", { class: "steps" },
       h("li", {}, h("a", { href: "https://elevenlabs.io/app", target: "_blank" }, "ElevenLabs에 로그인"), "합니다."),
-      h("li", {}, h("a", { href: "https://elevenlabs.io/app/settings/api-keys", target: "_blank" }, "API Keys"), "에서 새 키를 만들고 권한을 켭니다: ", h("b", {}, "Text to Speech, Voices(읽기·쓰기), Music, User(읽기)"), ". TTS만 켠 키로는 보이스 목록을 못 읽습니다."),
+      h("li", {}, h("a", { href: "https://elevenlabs.io/app/settings/api-keys", target: "_blank" }, "API Keys"), "에서 새 키를 만들고 권한을 켭니다: ", h("b", {}, "Text to Speech, Voices(읽기·쓰기), Music, User(읽기), Image & Video(AI 영상 B-roll)"), ". TTS만 켠 키로는 보이스 목록을 못 읽습니다."),
       h("li", {}, "키를 저장하고 연결 테스트로 권한과 남은 글자 수를 확인합니다."),
       h("li", {}, "클론 보이스가 없으면 아래 녹음기로 1~3분 샘플을 녹음해 ", h("b", {}, "Instant Voice Clone"), "을 만듭니다. 더 높은 품질은 사이트의 Professional Voice Clone(30분 이상 녹음)을 쓰세요."),
       h("li", {}, "이미 클론이 있으면 테스트 결과에서 골라 voice_id로 지정합니다.")),
@@ -1293,7 +1340,21 @@ async function viewAccounts(app) {
       } }, "연결 테스트")),
     elRes,
     recorder());
-  wrap.append(h("div", { class: "acgrid" }, hg, el));
+  // Envato (이미지·영상·아이콘 소재) — 키는 사용자가 직접 넣는다
+  const evKey = h("input", { type: "password", placeholder: acc.envato && acc.envato.key_set ? "저장됨 — 바꿀 때만 입력" : "Envato 개인 토큰 (Personal Token)", style: { width: "100%" } });
+  const evRes = h("div");
+  const ev = h("div", { class: "card" },
+    h("div", { class: "row" }, h("h3", { style: { margin: 0 } }, "Envato — 이미지·영상·아이콘 소재"), h("span", { class: "spacer" }), h("span", { class: "chip " + (acc.envato && acc.envato.key_set ? "locked" : "needs_user") }, acc.envato && acc.envato.key_set ? "키 있음" : "키 없음")),
+    h("ol", { class: "steps" },
+      h("li", {}, h("a", { href: "https://build.envato.com/create-token/", target: "_blank" }, "build.envato.com 토큰 만들기"), "에서 로그인 후 권한을 고릅니다: ", h("b", {}, "View and search Envato sites, Download your purchased items, View your account username"), "."),
+      h("li", {}, "만든 토큰을 아래에 붙여넣고 저장 → 연결 테스트."),
+      h("li", {}, "에이전트가 ", h("code", {}, "envato_assets.py search"), "로 소재를 찾고, 구매한 항목은 ", h("code", {}, "download"), "로 global_assets/에 받습니다. (Envato Elements 구독 소재는 API로 받을 수 없어 사이트에서 직접 받아 global_assets/에 넣어 주세요.)")),
+    h("label", { class: "small muted" }, "개인 토큰"), evKey,
+    h("div", { class: "row", style: { marginTop: "10px" } },
+      h("button", { onclick: async () => { await api("POST", "/api/accounts/envato", { api_key: evKey.value }); evKey.value = ""; toast("저장했어요"); } }, "저장"),
+      h("button", { class: "primary", onclick: async () => { evRes.innerHTML = "테스트 중…"; const r = await api("POST", "/api/accounts/envato/test"); evRes.innerHTML = ""; evRes.append(checksBox(r)); } }, "연결 테스트")),
+    evRes);
+  wrap.append(h("div", { class: "acgrid" }, hg, el, ev));
 }
 
 function recorder() {
@@ -1388,6 +1449,16 @@ function recorder() {
 // 공통 양식의 단일 출처: 색 · 글자 양식(제목·머리말·화두 문장·칩…) · 애니메이션 양식 · 연출 부품 카탈로그.
 // 여기서 바꾸면 그 양식을 참조하는 모든 섹션 미리보기에 바로 반영된다(영상은 '합본 다시 만들기').
 const KIT_DEMOS = {
+  rankRise: { w: 1200, h: 540, len: 140, props: { riseAt: 34, arrowAt: 8 } },
+  rings: { w: 1400, h: 600, len: 200, props: { center: "TF", rings: [{ label: "수요 확인", at: 20 }, { label: "결과 보며", at: 60 }, { label: "단계적 확대", at: 100 }] } },
+  panels3: { w: 1500, h: 560, len: 120, props: { panels: [{ icon: "money", title: "수익성", at: 0 }, { icon: "building", title: "기금", at: 14 }, { icon: "team", title: "연금", at: 28 }] } },
+  wordSwarm: { w: 1600, h: 900, len: 80, props: { text: "역량", burst: { at: 14, dur: 18 }, fly: { at: 30, dur: 40 } } },
+  horizon: { w: 1600, h: 900, len: 140, props: { word: "신사업", wordY: 420, lineLabel: "기존 사업의 경계", caption: "새로운 고객과 시장", captionSub: "경계를 넘어" } },
+  globe: { w: 1400, h: 860, len: 170, props: { center: { lon: 117, lat: 27 }, targets: [{ lon: -74, lat: 40.7 }, { lon: -0.1, lat: 51.5 }, { lon: 103.8, lat: 1.35 }, { lon: 151.2, lat: -33.9 }] } },
+  orgChart: { w: 1600, h: 560, len: 150, props: { root: "삼성자산운용", groups: 5, highlight: [[1, 0], [2, 2], [4, 1]], highlightAt: 100 } },
+  stackBuild: { w: 1400, h: 800, len: 230, props: { blocks: [{ label: "협업", icon: "handshake", at: 0 }, { label: "역량", icon: "team", at: 36 }, { label: "손익", icon: "money", at: 72 }], mapLabel: "미국 시장" } },
+  bars3d: { w: 1100, h: 640, len: 150, props: { bars: [{ label: "2025", value: 440 }, { label: "2026", value: 440, display: "543조", highlight: true, valueAt: 100, add: { value: 103, label: "+103조", at: 64 } }], pre: 1, turn: { at: 24, ry: -45 } } },
+  cards3d: { w: 1500, h: 460, len: 150, props: { cards: [{ num: "01", title: "성장", sub: "ETF·연금" }, { num: "02", title: "신사업", sub: "초부유층" }, { num: "03", title: "글로벌", sub: "해외 거점" }], tilt: { at: 16 } } },
   zoomReveal: { w: 1920, h: 1080, props: { slot: "건물 전경", caption: "사진 위 한 줄" } },
   split: { w: 1600, h: 700, props: { left: { label: "국내", slot: "왼쪽" }, right: { label: "해외", slot: "오른쪽" }, vs: "VS" } },
   gallery: { w: 1500, h: 760, props: { images: [1, 2, 3, 4, 5, 6].map((i) => ({ label: "사진 " + i })), cols: 3 } },
@@ -1399,7 +1470,8 @@ const KIT_DEMOS = {
   stat: { w: 1200, h: 520, props: { value: "4,178", unit: "억 원", label: "세전이익", delta: "+2배", size: 220 } },
   bars: { w: 900, h: 600, props: { bars: [{ label: "전년", value: 440, display: "" }, { label: "올해", value: 440, display: "543조", highlight: true, add: { value: 103, label: "+103조", at: 0 } }], max: 600, barWidth: 180, valueSize: 56 } },
   line: { w: 1000, h: 500, props: { series: [{ points: [3, 3.6, 3.3, 4.2, 3.9, 4.7] }], labels: ["", "", "", "", "", ""], markers: [{ i: 5, text: "정점" }] } },
-  nodes: { w: 1200, h: 500, props: { nodes: [{ id: "a", x: 220, y: 200, r: 110, glyph: "고객", label: "고객" }, { id: "b", x: 600, y: 200, r: 110, glyph: "상품", label: "상품" }, { id: "c", x: 980, y: 200, r: 110, glyph: "채널", label: "채널", fill: "$coral" }], links: [{ from: "a", to: "b", arrow: true }, { from: "b", to: "c", arrow: true }] } },
+  nodes: { w: 1200, h: 500, len: 160, props: { nodes: [{ id: "a", x: 220, y: 200, r: 110, glyph: "대체", label: "대체", icon: "money", flipAt: 20 }, { id: "b", x: 600, y: 200, r: 110, glyph: "글로벌", glyphSize: 52, label: "글로벌", icon: "globe", flipAt: 40 }, { id: "c", x: 980, y: 200, r: 110, glyph: "AI", label: "AI", icon: "robot", flipAt: 60, fill: "$coral" }], links: [{ from: "a", to: "b", arrow: true }, { from: "b", to: "c", arrow: true }] } },
+  // 노드 아이콘 데모는 nodes 썸네일에서: 클릭하면 글자 원이 뒤집혀 아이콘이 나온다
   table: { w: 1300, h: 420, props: { cols: ["구분", "목표", "현재"], rows: [["ETF", "40%", "39.4%"], ["연금", "14.5%", "13.1%"]], highlights: [{ row: 0, at: 0 }], accentCol: 1, rowH: 110 } },
   cards: { w: 1500, h: 400, props: { cards: [{ num: "01", title: "성장" }, { num: "02", title: "신사업" }, { num: "03", title: "글로벌" }], titleSize: 64, focus: [{ index: 1, at: 0 }] } },
   arrow: { w: 900, h: 450, props: { label: "격차 확대", color: "$coral", width: 14 } },
@@ -1498,22 +1570,29 @@ function renderKit() {
     h("table", { class: "tbl kittbl" }, h("thead", {}, h("tr", {}, ["양식", "등장", "길이", "퇴장", "길이", "미리보기"].map((x) => h("th", {}, x)))), h("tbody", {}, mrows))));
 
   // 3b) 섹션 전환 (@remotion/transitions — 합본 때 경계마다 적용)
+  root.append(kitFont(T));
   root.append(kitTransitions(T));
   root.append(kitBeatAccent(T));
   root.append(kitMilestones(T));
+  root.append(kitTextHighlight(T));
 
   // 4) 연출 부품
   const comps = Object.entries(T.components || {}).map(([k, c]) => {
     const demo = KIT_DEMOS[k];
     let thumb;
     if (demo) {
-      const svg = diagramSVG(Object.assign({ kind: k }, resolveColors({ w: demo.w, h: demo.h, props: demo.props }, T.colors)), 100000);
-      thumb = h("div", { class: "kitthumb" }, h("div", { style: { width: demo.w + "px", height: demo.h + "px", transform: `scale(${Math.min(320 / demo.w, 180 / demo.h)})`, transformOrigin: "0 0" }, html: svg }));
+      const del = Object.assign({ id: "demo_" + k, kind: k, t: { in: 0 } }, resolveColors({ w: demo.w, h: demo.h, props: demo.props }, T.colors));
+      const box = h("div", { style: { width: demo.w + "px", height: demo.h + "px", transform: `scale(${Math.min(320 / demo.w, 180 / demo.h)})`, transformOrigin: "0 0" }, html: diagramSVG(del, 100000) });
+      // 썸네일 클릭 → 처음부터 움직임 재생 (3D 전환·뒤집기 등 무엇을 가리키는지 바로 보이게)
+      const play = () => { let f = 0; const len = demo.len || 90; const step = () => { box.innerHTML = diagramSVG(del, f); if (f++ < len) requestAnimationFrame(step); }; step(); };
+      thumb = h("div", { class: "kitthumb", title: "클릭하면 움직임 재생", style: { cursor: "pointer" }, onclick: play }, box, h("span", { class: "kitplay" }, "▶"));
     } else if (k === "broll") thumb = h("div", { class: "kitthumb", html: brollSVG({ w: 1920, h: 1080, slot: "장면 묘사", query: "query" }, 0, 100).replace("<svg ", '<svg style="width:320px;height:180px" ') });
     else thumb = h("div", { class: "kitthumb ph" }, "3D");
     const params = c.params ? h("div", { class: "kitparams" }, Object.entries(c.params).map(([pk, pv]) => h("label", { class: "small" },
       ((c.paramLabels || {})[pk] || pk) + " ",
-      h("input", { type: "number", value: pv, style: { width: "64px" }, onchange: (e) => { c.params[pk] = +e.target.value; kitChanged(); } })))) : null;
+      typeof pv === "string"   // 색 같은 글자 값(#8a94a6)은 글자 칸
+        ? h("input", { type: "text", value: pv, style: { width: "92px" }, onchange: (e) => { c.params[pk] = e.target.value.trim(); kitChanged(); } })
+        : h("input", { type: "number", value: pv, style: { width: "64px" }, onchange: (e) => { c.params[pk] = +e.target.value; kitChanged(); } })))) : null;
     return h("div", { class: "kitcomp" }, thumb, h("b", {}, c.label || k), h("div", { class: "mono small muted" }, k), h("div", { class: "small kitidea" }, "💡 " + (c.idea || "")), params, usageChips((U.kinds || {})[k]));
   });
   root.append(h("div", { class: "card kitsec" }, h("h3", {}, "연출 부품"),
@@ -1618,6 +1697,39 @@ function kitBeatAccent(T) {
     h("div", { class: "small muted" }, "강조 종류: " + Object.entries(EMPHASIS).map(([k, v]) => `${k}(${v})`).join(" · ")));
 }
 
+// 기본 글꼴: 고르면 모든 글자 양식 + 키트 그림 + 마일스톤 글꼴이 함께 바뀐다
+function kitFont(T) {
+  const F = T.font = Object.assign({ family: "Pretendard" }, T.font || {});
+  const fams = Object.keys(S.families || {});
+  const sample = h("div", { style: { fontFamily: `"${F.family}", Pretendard, sans-serif`, fontSize: "40px", fontWeight: 800, color: (T.colors || {}).navy, padding: "8px 0" } }, "2027 경영전략 · Beyond Connection 543.5조");
+  const weights = (S.families || {})[F.family] || [];
+  return h("div", { class: "card kitsec" }, h("h3", {}, "기본 글꼴 (영상 전체)"),
+    h("div", { class: "small muted" }, "글꼴 파일(.otf·.ttf)을 프로젝트 global_assets/fonts/ 에 넣거나 Windows에 설치하면 목록에 나옵니다. 바꾸면 모든 섹션을 다시 렌더해야 합니다."),
+    h("div", { class: "row" },
+      h("select", { onchange: (e) => {
+        F.family = e.target.value;
+        for (const st of Object.values(T.styles || {})) if (st.font) st.font.family = F.family;   // 글자 양식 전체
+        kitChanged(); renderKit();
+      } }, (fams.includes(F.family) ? fams : [F.family, ...fams]).map((x) => h("option", { value: x, selected: x === F.family }, x + (S.families[x] ? "" : " (설치 안 됨)")))),
+      h("span", { class: "small muted" }, weights.length ? "굵기: " + weights.join(" · ") : "")),
+    sample);
+}
+// 하이라이트 글자 기본값 (장표 안 강조 단어 — 인스펙터에서 고른 글자에 적용)
+function kitTextHighlight(T) {
+  const H = T.textHighlight = Object.assign({ color: "$blue", effect: "color", dur: 18 }, T.textHighlight || {});
+  const names = Object.keys(T.colors || {}).filter((k) => !["bg", "white", "soft", "line"].includes(k));
+  const demo = h("div", { style: { fontSize: "34px", fontWeight: 700, color: (T.colors || {}).navy || "#0b1f4b", padding: "10px 0", cursor: "pointer" }, title: "클릭하면 재생" });
+  const el = () => ({ text: "올해, 우리는 어떤 환경에서", font: { color: (T.colors || {}).navy || "#0b1f4b" }, hl: [{ text: "어떤 환경", at: 6, color: (T.colors || {})[H.color.slice(1)] || H.color, effect: H.effect, dur: H.dur }] });
+  const play = () => { let f = 0; const step = () => { demo.innerHTML = textHTML(el(), { text: 1, count: 1 }, f); if (f++ < 70) requestAnimationFrame(step); }; step(); };
+  demo.onclick = play; demo.innerHTML = textHTML(el(), { text: 1, count: 1 }, 999);
+  return h("div", { class: "card kitsec" }, h("h3", {}, "하이라이트 글자 (장표 안 강조 단어)"),
+    h("div", { class: "small muted" }, "요소 인스펙터 → '하이라이트 글자'에서 글자를 고르면 이 기본값으로 바뀌며 반짝입니다. 아래 문장을 클릭하면 재생."),
+    h("div", { class: "row" },
+      h("label", { class: "small" }, "색 ", h("select", { onchange: (e) => { H.color = e.target.value; kitChanged(false); play(); } }, names.map((k) => h("option", { value: "$" + k, selected: "$" + k === H.color }, k)))),
+      h("label", { class: "small" }, "효과 ", h("select", { onchange: (e) => { H.effect = e.target.value; kitChanged(false); play(); } }, Object.entries(HL_EFFECTS).map(([k, v]) => h("option", { value: k, selected: k === H.effect }, v)))),
+      h("label", { class: "small" }, "길이(f) ", h("input", { type: "number", value: H.dur, style: { width: "56px" }, onchange: (e) => { H.dur = +e.target.value; kitChanged(false); play(); } }))),
+    demo);
+}
 function kitMilestones(T) {
   const M = T.milestones = Object.assign({ enabled: true, height: 64, hideOpening: true, hideEnding: false }, T.milestones || {});
   const chs = (S.project && S.project.project && S.project.project.milestones) || [];

@@ -11,6 +11,7 @@ export type MilestoneProps = {
   chapters: {title: string; start: number; end: number; steps?: {label: string; start: number; end: number}[]}[];
   showFrom?: number; // 이 프레임 전에는 숨김(오프닝)
   hideAfter?: number; // 이 프레임 뒤로는 숨김(엔딩)
+  dark?: [number, number][]; // 어두운 화면 구간(합본 프레임) — 흰 선·흰 글자
   style?: any; // theme.milestones (colors는 이미 hex로 풀어서 옴)
   fonts?: {family: string; weight: number; src: string}[]; // public dir 기준
 };
@@ -51,9 +52,12 @@ export const Module2Milestones: React.FC<MilestoneProps> = (p) => {
     x += w[i] + gap;
     return s;
   });
-  return (
-    <AbsoluteFill style={{opacity: vis}}>
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+  // 어두운 화면(실사·사진·파란 간지) 구간: 선·점·글자 모두 흰색, 글자 테두리 없음 (2026-11-20 사용자). 경계에서 10프레임 동안 바뀐다
+  const dk = Math.max(0, ...(p.dark || []).map(([a, b]) => Math.min(interpolate(f, [a - 5, a + 5], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
+    interpolate(f, [b - 5, b + 5], [1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}))));
+  const W_C = {track: 'rgba(255,255,255,.35)', fill: '#ffffff', on: '#ffffff', off: 'rgba(255,255,255,.75)', dot: '#ffffff', halo: 'none'};
+  const layer = (C: any, op: number) => op <= 0 ? null : (
+    <g opacity={op}>
         {segs.map(({c, x: sx, w}, i) => {
           const cur = f >= c.start && f < c.end, done = f >= c.end;
           const prog = cur ? (f - c.start) / Math.max(1, c.end - c.start) : done ? 1 : 0;
@@ -69,12 +73,19 @@ export const Module2Milestones: React.FC<MilestoneProps> = (p) => {
                 const tx = sx + w * ((s.start - c.start) / Math.max(1, c.end - c.start));
                 return <rect key={k} x={tx - 1} y={trackY - 4} width={2} height={lw + 8} fill={f >= s.start ? C.fill : C.track} />;
               })}
-              <text x={sx} y={trackY - 12} fontFamily="Pretendard, sans-serif" fontSize={cur ? 22 + 2 * lit : 20} fontWeight={cur ? 700 : 500}
+              <text x={sx} y={trackY - 12} fontFamily={`"${st.fontFamily || "Pretendard"}", Pretendard, sans-serif`} fontSize={cur ? 22 + 2 * lit : 20} fontWeight={cur ? 700 : 500}
                 fill={cur ? C.on : C.off} opacity={cur ? 1 : done ? 0.6 : 0.85}
-                stroke={C.halo} strokeWidth={5} strokeLinejoin="round" style={{paintOrder: 'stroke'}}>{label}</text>
+                stroke={C.halo} strokeWidth={C.halo === 'none' ? 0 : 5} strokeLinejoin="round" style={{paintOrder: 'stroke'}}>{label}</text>
             </g>
           );
         })}
+    </g>
+  );
+  return (
+    <AbsoluteFill style={{opacity: vis}}>
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+        {layer(C, 1 - dk)}
+        {layer(W_C, dk)}
       </svg>
     </AbsoluteFill>
   );

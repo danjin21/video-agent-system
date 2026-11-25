@@ -210,3 +210,6 @@ table.tbl tr.click:hover td{background:#f5f7fb}
 .trbox .trB { background: #2f6bff; }
 .kittbl td:first-child { min-width: 120px; }
 .kittbl td:first-child b { white-space: nowrap; }
+.kitthumb { position: relative; }
+.kitplay { position: absolute; right: 6px; bottom: 6px; font-size: 12px; background: rgba(11,31,75,.7); color: #fff; border-radius: 10px; padding: 1px 7px; pointer-events: none; }
+.hlbox { margin-top: 8px; padding: 8px; border-radius: 8px; background: #f5f8ff; }

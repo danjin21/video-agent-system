@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, {useEffect, useState} from 'react';
 import {AbsoluteFill, Audio, CalculateMetadataFunction, Img, OffthreadVideo, Sequence, continueRender, delayRender, staticFile, useCurrentFrame} from 'remotion';
-import {mergeSection, richSegments, stateAt, displayText, diagramSVG, brollSVG, brollCamera, setMediaResolver, diagramMedia, emphasisShadow, transformOf} from './anim.js';
+import {mergeSection, richSegments, stateAt, displayText, diagramSVG, brollSVG, brollCamera, setMediaResolver, diagramMedia, emphasisShadow, emphasisFilter, transformOf, textHTML} from './anim.js';
 import {Scene3D} from './three/Scene3D';
 
 export type SectionProps = {
@@ -80,6 +80,7 @@ const Element: React.FC<{el: any; frame: number; p: SectionProps; fps: number}> 
     opacity: st.opacity, transform: transformOf(st),
     clipPath: st.clipL || st.clipR ? `inset(-20px ${st.clipR}% -20px ${st.clipL}%)` : undefined,
     boxShadow: emphasisShadow(st) || undefined,
+    filter: emphasisFilter(st) || undefined,
   };
   if (el.type === 'text' && el.valign) {
     style.display = 'flex';
@@ -92,8 +93,9 @@ const Element: React.FC<{el: any; frame: number; p: SectionProps; fps: number}> 
   let content: React.ReactNode = null;
   if (el.type === 'text') {
     const raw: string = el.text || '';
-    content = raw.includes('[[')
-      ? <div>{richSegments(raw, st).map((s, i) => s.accent ? <span key={i} style={{color: f.accentColor || '#296ef9'}}>{s.text}</span> : <React.Fragment key={i}>{s.text}</React.Fragment>)}</div>
+    // [[강조]]·하이라이트 글자(hl)는 anim.js textHTML (스튜디오와 같은 함수)
+    content = raw.includes('[[') || (el.hl && el.hl.length)
+      ? <div dangerouslySetInnerHTML={{__html: textHTML(el, st, frame)}} />
       : <div>{displayText(raw, st)}</div>;
   } else if (el.type === 'image') {
     content = el.src ? <Img src={resolve(el.src, p.sectionDir)} style={{width: '100%', height: '100%', objectFit: el.fit || 'cover', display: 'block'}} /> : (p.draft ? <Placeholder label="이미지" /> : null);

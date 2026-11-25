@@ -12,7 +12,7 @@
   [오류] 숫자 연출 없음               대본에 금액·%·배 수치가 있는데 stat/bars/line/table/카운트업이 없음
   [오류] 같은 장치 반복               연속 3개 섹션이 같은 장치 구성(요소 종류 집합)
   [오류] 화두 과밀                   한 화면에 내용 6개 이상 동시 (4~5개는 경고). 같은 group 값은 하나로 셈
-  [오류] 배치: 겹침·선이 글자를 가로지름·카드/칩 안 글자가 테두리에 붙음 (layout_audit.mjs)   [경고] 배치: 24px 미만으로 붙음·화면 밖
+  [오류] 배치: 겹침·선이 글자를 가로지름·카드/칩 안 글자가 테두리에 붙음 (layout_audit.mjs)   [오류] 머리말 아래 64px 미만   [경고] 배치: 32px 미만으로 붙음·화면 밖
   [경고] 화두 단어가 발음과 1초 넘게 어긋남 (words.json)
   [경고] 숫자 카운트업·막대가 다 자라기 전(또는 1초 안)에 장면이 바뀜
   [경고] 정지 구간                  새 요소·강조·키트 내부 등장·자동 비트 강조 없이 6초 넘게 멈춤
@@ -135,6 +135,8 @@ def word_offsets(d, els, tle, beats, fps=30):
     if not words:
         return out
     for e in els:
+        if e.get("sync") is False:   # 디자인에서 발음 맞춤을 일부러 끈 요소 (예: 띠를 대사보다 먼저)
+            continue
         t, key = tle.get(e.get("id")) or {}, _key_text(e)
         sent = None
         if e.get("type") == "text" and not e.get("nosync") and e.get("style") not in ("kicker", "title", "note", "chip", "chip_alert"):
@@ -315,9 +317,9 @@ def check(P):
         except Exception:
             found = []
             add("warn", None, "layout_audit", "배치 검사를 실행하지 못했습니다: %s" % (r.stderr or "")[-200:])
-        KN = {"overlap": "겹침", "crossing": "선이 글자를 가로지름", "edge": "카드·칩 테두리에 붙음(여백 20px 미만)", "milestone": "영상 위 마일스톤 바 자리에 글자가 들어감", "crowded": "너무 붙음(24px 미만)", "offscreen": "화면 밖"}
+        KN = {"overlap": "겹침", "crossing": "선이 글자를 가로지름", "edge": "카드·칩 테두리에 붙음(여백 20px 미만)", "milestone": "영상 위 마일스톤 바 자리에 글자가 들어감", "crowded": "너무 붙음(32px 미만)", "headgap": "머리말 아래 내용이 너무 가까움(64px 미만)", "offscreen": "화면 밖"}
         for x in found:
-            lv = "error" if x["kind"] in ("overlap", "crossing", "edge") else "warn"
+            lv = "error" if x["kind"] in ("overlap", "crossing", "edge", "headgap") else "warn"
             add(lv, x["section"], "layout_" + x["kind"], "%.1f초 %s — %s%s" % (x["t"], KN.get(x["kind"], x["kind"]), x["a"], (" ↔ " + x["b"]) if x.get("b") else ""))
     else:
         add("warn", None, "layout_audit", "node가 없어 배치 검사(겹침·간격)를 건너뛰었습니다.")

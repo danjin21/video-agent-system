@@ -26,6 +26,11 @@ python3 $S/studio_queue.py <project> list                  # 사용자가 보낸
 python3 $S/module2_setup.py install                       # (새 PC 1회) Remotion·3D·폰트·스킬. Windows는 py -3
 python3 $S/render_section.py <project> <sNN|all> [--draft] [--still N]   # 섹션 렌더
 python3 $S/assemble.py <project> [--draft]                 # 섹션 이어 붙이기 + 나레이션 + BGM
+python3 $S/tts_voice.py <project> --sections s01,s02 --yes  # 문장(비트)별 음성 (project.json voice.provider)
+python3 $S/splice_real.py <project> plan|make              # 무음 처리된 민감 실값을 같은 목소리 조각으로 끼움 (§7-3)
+python3 $S/voice_takes.py <project> review                 # 문장별 듣기 폴더(번호·시각 목록) → 사용자가 이상한 번호 지목
+python3 $S/voice_takes.py <project> gen s01:b1 --n 3       # 그 문장만 새로 3개 + 비교 파일 → use s01:b1 2 로 교체
+cd <project>/design && python3 sections_a.py               # 섹션 설계 스크립트(kit.py) → layout/timeline (음성 길이 바뀌면 재실행)
 ```
 스크립트는 표준 라이브러리만 쓴다 (Python 3.9+, pptx/docx도 zip+XML로 직접 읽음). 서버는 실행 중인 프로젝트 하나만 다룬다.
 
@@ -57,6 +62,10 @@ python3 $S/assemble.py <project> [--draft]                 # 섹션 이어 붙�
   - 아바타는 **풀스크린**만. 코너 박스·양옆 파란 패널 금지. 강조는 아바타 양옆 흰색 대형 키워드.
   - 아바타는 기본 **처음과 끝**에만. 한 씬은 **연속 단일 클립**.
   - 가안 데이터는 화면에 "(가안)" 표기.
+  - **모든 타이틀은 명사형.** 제목·머리말(kicker)·챕터 간지·질문 장면 문구는 명사(구)로 끝낸다. "예를 들어 — 업무 절차를 다시 본다", "고객 접점을 잇는다", "올해, 어느 정도의 성장을 이루려 하는가" 같은 문장형·질문형 금지 → "업무 절차 재검토", "고객 접점 연결", "올해 성장 목표". 명사형으로 안 되면 타이틀을 뺀다. (2026-11-20 사용자: "모든 타이틀은 명사형이다. 에이전트에도 명시해라")
+  - **강조·확대는 한 요소에 한 번.** 자동 강조(`beatAccent`)는 기본 끔, 수동 펄스 남발 금지, 노드는 톡 커지지 않고 페이드(`pop:true`일 때만 톡). 확대가 필요하면 다 나온 뒤 `zoom` 한 번. 키워드·패널은 나온 뒤 멈춤(`panels3.still`). (2026-11-20 사용자: "확대 두 번 되는 효과 다 없애라", "촐싹대지 마")
+  - **하이라이트**: 남색 글자가 말할 때 파랑으로 바뀌는 `color`(기본) 또는 처음부터 색 + 말할 때 흰 선이 훑는 `sweep`. 파란 번짐(blur·glow) 금지.
+  - **대본에 구어체 군말 금지**("이제" 등).
   - 음성 검수는 BGM 없는 나레이션 트랙으로.
 - **실데이터가 들어간 산출물은 claude.ai 아티팩트로 올리지 않는다.** 스토리보드·스튜디오는 로컬(localhost)에서만 연다. 공유가 필요하면 마스킹본만 올린다.
 
@@ -167,6 +176,9 @@ python3 $S/assemble.py <project> [--draft]                 # 섹션 이어 붙�
 
 ### 4-0-0b. 배치 검사 (구현됨, 2026-11-18)
 `scripts/module2/layout_audit.mjs` — anim.js가 그리는 글자·선·원·막대의 화면 좌표를 기록(`collectDiagram`, `measureText`)해 장면 시점마다 겹침·가로지름·24px 미만 붙음·화면 밖을 찾는다. direction_check 오류(겹침·가로지름)/경고(붙음·화면 밖)로 연결, 스튜디오 연출안 탭 검수 목록에 표시. 대형 키워드 글자 스태거는 한 단어로 본다.
+
+### 4-0-0c. 섹션 설계 스크립트 (구현됨, 2026-11-20)
+섹션 화면은 `$P/design/sections_*.py`(챕터별 함수 `s01()`…)와 `scenes_*.py`(덮어쓰기)로 만든다. 짧은 표기·규칙은 `$P/design/kit.py` — 템플릿 `templates/module2/design/kit.py`·`README.md`(module2_init이 복사). `save()`는 layout·timeline을 쓰고 edits.json을 비우므로, 사용자가 말한 수정은 **설계 스크립트에 반영**한다(스튜디오 미세조정만으로 끝내지 않음). 음성 길이가 바뀌면 설계 스크립트를 다시 돌린다. 사용자 확정 연출 규칙(명사형 타이틀·강조 1회·번짐 금지·가운데 시선 등)은 README 끝에 있다.
 
 ### 4-0-1. 연출 키트 (구현됨)
 요소 `type:"diagram"`(kind 11종: chapter·keyword·ghost·stat·bars·line·nodes·table·cards·arrow·banner)과 `type:"broll"`(실사 자리표시 → `src` 생기면 실사, 카메라 줌·팬·회전). 그리는 규칙은 `anim.js`의 `diagramSVG`·`brollSVG` 하나 → 스튜디오 미리보기와 Remotion 렌더가 같다. props와 레시피: `templates/module2/remotion/DIRECTION_KIT.md`. b-roll 자리표시는 초안·최종 모두 보인다(기획이 화면에 남도록).
@@ -324,6 +336,13 @@ API: `GET /api/full` → `{fps,total_frames,sections:[{id,title,start,duration,c
 - 숫자·약어 발음 정규화 후 생성 (OCIO="오씨아이오", UHNW는 "초부유층" 등 메모리 규칙).
 - 생성 전 **글자 수와 예상 비용을 알리고 승인**받는다.
 - 생성 후 `voice-qa`(BGM 없이 끝음·잡음·튐 검사) → 문제 비트만 재생성 → `asr_words.py`로 단어 타임스탬프.
+- **문장 단위 수정 루프 (구현됨 `voice_takes.py`, 2026-11-24 사용자: "한 문장씩 만들어서, 삑사리 나는 부분만 찾아서 고칠 수 있도록")**
+  1. `review` → `00-direction/문장별_듣기/`(001_s01_b1_대사.wav … + `_문장목록.txt`: 번호·나레이션 전체 mp3 기준 시각·대사)를 사용자에게 준다.
+  2. 사용자가 "몇 분 몇 초"·번호로 지목 → `gen sNN:bK --n 3`(같은 문장도 생성마다 억양이 다름) → `00-direction/비교_sNN_bK.wav`(지금→새1→새2→새3, 0.9초 간격) 전달.
+  3. 사용자가 고르면 `use sNN:bK 2` → 기존 보관 + words·tts.json 갱신 + 시간 다시 잡기 → (실값 무음 있으면) `splice_real.py make --only` → 설계 스크립트 재실행.
+  - 삑사리(음높이 순간 튐)는 파형 자동 탐지가 오탐이 많다 → **귀로 확인이 정본**. 끝 음절이 문장 평균보다 크게(+8dB↑) 튀는 것은 잡을 수 있음(예: "감사합니다"의 '니다').
+- **음량 처리**: 리미터로 누르지 말 것(HeyGen 원본 피크가 이미 0.9 이상 — 전 문장 -16.5dB + 리미터 0.84로 눌렀다가 찌그러짐 우려). 말소리 구간 -16.5dB 목표, 피크 -1.5dB 넘지 않게 **이득만** 조정 + 앞뒤 5ms 페이드(voice_takes가 자동).
+- **목소리 교체 시**: 기존 audio·beats·timeline·layout 전부 `00-direction/voice_backup_<이름>/`에 백업 → 전 문장 재생성 → 음성 없는 섹션(인트로)이 0.5초로 줄었는지 확인·복원 → `audio/splice/*.masked.wav` 삭제 후 splice 재실행 → 설계 재실행 → 아바타(립싱크)는 새 음성으로 다시 만들어야 함을 알린다.
 
 ### 7-2. 사용 엔드포인트 (구현 시 공식 문서로 재확인)
 - 문장 생성: text-to-speech, 가능하면 **with-timestamps**(문자 정렬 정보)로 받아 스플라이스 위치 계산에 쓴다.
@@ -344,6 +363,10 @@ API: `GET /api/full` → `{fps,total_frames,sections:[{id,title,start,duration,c
 - 숫자는 읽는 형태로 바꿔서 생성 ("4,300억 원" → "사천삼백억 원").
 - 실단어 조각조차 외부로 보내면 안 되는 경우: 사용자가 스튜디오 녹음기로 해당 어절을 직접 녹음하거나, 그 문장을 화면 자막·장표로만 보여주는 대안을 제시한다.
 - 산출: `sections/sNN/audio/splice/` (마스킹 원본, 조각, 합성본, 검증 리포트). 원본 마스킹 WAV는 보관.
+- **구현됨 `scripts/module2/splice_real.py` (2026-11-20~24)**: `plan`(끼울 자리·읽는 형태) → `make [--only sNN:bK] [--regen]`.
+  - 읽는 형태 = redaction_map 토큰 `"say"` 우선, 없으면 숫자 한자어 자동 변환(`1,234억 원`→천이백삼십사억 원, `12.5조`→십이 점 오조, `3%p`→삼 퍼센트포인트). **plan 출력으로 사용자 확인.** 실값·읽는 형태를 플러그인 코드에 적지 않는다(배포됨).
+  - HeyGen: 앞뒤 **마스킹** 문장을 붙인 운반 문장으로 생성 → 글자 시각으로 실단어 구간만 잘라냄(억양 자연스러움). 게이트: 운반 문장의 실값은 그 하나뿐. ElevenLabs: previous/next_text에 마스킹본.
+  - 이음새 음량 = 앞뒤 1초 말소리 RMS에 맞춤(0.4~2.5배 제한), 15ms 크로스페이드. 끝나면 `tts_voice.py --retime` + 설계 재실행.
 
 ---
 

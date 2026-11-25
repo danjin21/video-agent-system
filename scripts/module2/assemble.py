@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """모듈2 합본 — 섹션 렌더를 이어 붙이고 나레이션·BGM을 깐다 (모듈1 assemble 교훈 반영).
 
@@ -8,6 +8,7 @@
   섹션 경계마다 영상이 1~2프레임씩 밀린다(2026-09 모듈1 사고).
 - 나레이션: 섹션 audio/beat-N.wav 원본을 (섹션 시작 프레임 + 비트 시작 프레임) 위치에 adelay로 배치.
 - BGM: project.json bgm.tracks[0] 이 있으면 반복 재생, 나레이션에 사이드체인 덕킹. `-shortest` 쓰지 않고 apad/atrim으로 길이 고정.
+  앞부분만 깔려면 bgm.until("s14" — 그 섹션 시작에서 끝) 또는 bgm.end_sec(초) + bgm.fade_out(초, 기본 4).
 - --draft: 섹션 최종본(sNN.mp4) 대신 초안(preview.mp4)으로 빠르게 이어 보기(전환 없이 단순 이어 붙임).
 - 섹션 전환: design/theme.json `transitions`(디자인 키트)에 따라 경계마다 @remotion/transitions 조각(Module2Transition)을 렌더해
   [앞 섹션 - n] + [전환 n] + [다음 섹션 - n] 으로 잇는다. 경계마다 n프레임 겹치므로 나레이션 위치도 n씩 당긴다.
@@ -42,6 +43,11 @@ def run(cmd):
         sys.exit("ffmpeg 실패:\n" + r.stderr[-2000:])
 
 
+# 색 규격 — 모든 재인코딩을 BT.709·tv 범위로 통일 (2026-11-20: 섹션은 BT.709인데 합본이 BT.601·pc로 나가 사람 색조가 달라 보였음)
+BT709 = ["-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709", "-color_range", "tv"]
+TOTV = "scale=in_range=auto:out_range=tv:in_color_matrix=auto:out_color_matrix=bt709"
+
+
 DEFAULT_TRANSITIONS = {"default": {"type": "fade", "frames": 15}, "chapter": {"type": "wipe", "direction": "from-right", "frames": 18}, "sections": {}}
 
 
@@ -69,7 +75,7 @@ def render_transition(P, a_rel, a_from, b_rel, t, out):
     """Module2Transition 조각 렌더 (입력·설정이 같으면 재사용)"""
     import hashlib
     import render_section as RS
-    key = json.dumps([a_rel, a_from, b_rel, t, os.path.getmtime(os.path.join(P, a_rel)), os.path.getmtime(os.path.join(P, b_rel))], sort_keys=True)
+    key = json.dumps([a_rel, a_from, b_rel, t, os.path.getmtime(os.path.join(P, a_rel)), os.path.getmtime(os.path.join(P, b_rel)), "bt709"], sort_keys=True)
     h = hashlib.sha1(key.encode("utf-8")).hexdigest()[:12]
     stamp = out + ".key"
     if os.path.exists(out) and os.path.exists(stamp) and open(stamp, encoding="utf-8").read() == h:
@@ -83,7 +89,8 @@ def render_transition(P, a_rel, a_from, b_rel, t, out):
     with open(pp, "w", encoding="utf-8") as f:
         json.dump(props, f, ensure_ascii=False)
     cmd = m2env.remotion_cli(RS.REMOTION) + ["render", "codex-workspace/module2/index.ts", "Module2Transition", out, "--muted",
-                                               "--props=%s" % pp, "--public-dir=%s" % P, "--gl=angle", "--log=error"]
+                                               "--props=%s" % pp, "--public-dir=%s" % P, "--gl=angle", "--log=error",
+                                               "--image-format=png", "--pixel-format=yuv420p", "--color-space=bt709", "--crf=16"]
     r = m2env.run(cmd, cwd=RS.REMOTION)
     if r.returncode != 0 or not os.path.exists(out):
         sys.exit("전환 렌더 실패 (%s -> %s):\n%s" % (a_rel, b_rel, (r.stdout + r.stderr)[-2000:]))
@@ -94,6 +101,41 @@ def render_transition(P, a_rel, a_from, b_rel, t, out):
 
 MILESTONE_DEFAULT = {"enabled": True, "height": 64, "padX": 140, "gap": 10, "trackY": 44, "lineWidth": 4,
                      "track": "$line", "fill": "$blue", "on": "$navy", "off": "$gray", "dot": "$blue", "hideOpening": True, "hideEnding": False}
+
+
+def dark_ranges(P, starts_out):
+    """화면이 어두운 구간(합본 프레임) — 전체화면 실사(broll·video·avatar)·배경 사진·파란 간지·전체 어둡게 덮개.
+    이 구간에서 마일스톤 바는 흰 선·흰 글자(테두리 없음)로 그린다 (2026-11-20 사용자)."""
+    out = []
+    for x in starts_out:
+        d = os.path.join(P, "sections", x["id"])
+        try:
+            lay = json.load(open(os.path.join(d, "layout.json"), encoding="utf-8"))
+            tl = json.load(open(os.path.join(d, "timeline.json"), encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            continue
+        tle = tl.get("elements") or {}
+        for e in lay.get("elements") or []:
+            full = (e.get("w") or 0) >= 1800 and (e.get("h") or 0) >= 1000
+            p = e.get("props") or {}
+            dark = (full and e.get("type") in ("broll", "video", "avatar")) or \
+                   (e.get("type") == "diagram" and e.get("kind") == "zoomReveal" and p.get("background")) or \
+                   (e.get("type") == "diagram" and e.get("kind") == "chapter" and p.get("onBlue")) or \
+                   (full and e.get("type") == "rect" and "rgba(11,31,75" in str(e.get("fill") or "").replace(" ", ""))
+            t = tle.get(e["id"])
+            if dark and t:
+                a = x["start"] + int(t.get("in", 0))
+                b = x["start"] + min(int(t.get("out", x["duration"])), x["duration"])
+                if b > a:
+                    out.append([a, b])
+    out.sort()
+    merged = []
+    for a, b in out:
+        if merged and a <= merged[-1][1] + 6:
+            merged[-1][1] = max(merged[-1][1], b)
+        else:
+            merged.append([a, b])
+    return merged
 
 
 def milestone_overlay(P, cfg, theme, starts_out, total, fps, tmp):
@@ -131,8 +173,11 @@ def milestone_overlay(P, cfg, theme, starts_out, total, fps, tmp):
     if st.get("hideOpening") and len(chapters) > 1:
         chapters = chapters[1:]
     import render_section as RS
-    fonts, _ = RS.collect_fonts(P, {("Pretendard", 500), ("Pretendard", 700)})
-    props = {"total": total, "fps": fps, "chapters": chapters, "showFrom": show, "hideAfter": hide, "style": st, "fonts": fonts}
+    fam = (theme.get("font") or {}).get("family") or "Pretendard"
+    fonts, _ = RS.collect_fonts(P, {(fam, 500), (fam, 700)})
+    st["fontFamily"] = fam
+    props = {"total": total, "fps": fps, "chapters": chapters, "showFrom": show, "hideAfter": hide, "style": st, "fonts": fonts,
+             "dark": dark_ranges(P, starts_out)}
     out = os.path.join(P, "final", "milestones.mov")
     h = hashlib.sha1(json.dumps(props, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()[:12]
     stamp = out + ".key"
@@ -220,24 +265,24 @@ def main():
             tail = trans[si]["frames"] if si < len(trans) else 0
             inputs += ["-i", os.path.join(P, src_rel)]
             k = len(inputs) // 2 - 1
-            segs.append("[%d:v]trim=start_frame=%d:end_frame=%d,setpts=PTS-STARTPTS,fps=%d,format=yuv420p[v%d]" % (k, head, dur - tail, fps, len(segs)))
+            segs.append("[%d:v]trim=start_frame=%d:end_frame=%d,setpts=PTS-STARTPTS,fps=%d,%s,format=yuv420p[v%d]" % (k, head, dur - tail, fps, TOTV, len(segs)))
             if tail:
                 b_rel = os.path.join("sections", secs[si + 1], "render", "%s.mp4" % secs[si + 1])
                 tp = render_transition(P, src_rel, dur - tail, b_rel, trans[si], os.path.join(tdir, "%s_%s.mp4" % (sid, secs[si + 1])))
                 print("전환 %s->%s %s %d프레임" % (sid, secs[si + 1], trans[si].get("type"), tail), flush=True)
                 inputs += ["-i", tp]
                 k = len(inputs) // 2 - 1
-                segs.append("[%d:v]setpts=PTS-STARTPTS,fps=%d,format=yuv420p[v%d]" % (k, fps, len(segs)))
+                segs.append("[%d:v]setpts=PTS-STARTPTS,fps=%d,%s,format=yuv420p[v%d]" % (k, fps, TOTV, len(segs)))
         fc = ";".join(segs) + ";" + "".join("[v%d]" % i for i in range(len(segs))) + "concat=n=%d:v=1:a=0[v]" % len(segs)
-        run(["ffmpeg", "-y", "-loglevel", "error"] + inputs + ["-filter_complex", fc, "-map", "[v]", "-c:v", "libx264", "-preset", "veryfast",
-                                                            "-crf", "18", "-pix_fmt", "yuv420p", "-r", str(fps), video])
+        run(["ffmpeg", "-y", "-loglevel", "error"] + inputs + ["-filter_complex", fc, "-map", "[v]", "-c:v", "libx264", "-preset", "medium",
+                                                            "-crf", "15", "-pix_fmt", "yuv420p"] + BT709 + ["-r", str(fps), video])
     else:
         run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", lst, "-c", "copy", video])
     ms_mov = None if a.draft else milestone_overlay(P, cfg, theme, starts_out, offset, fps, tmp)
     if ms_mov:
         v2 = os.path.join(tmp, "video_ms.mp4")
-        run(["ffmpeg", "-y", "-loglevel", "error", "-i", video, "-i", ms_mov, "-filter_complex", "[0:v][1:v]overlay=0:0:format=auto,format=yuv420p[v]",
-             "-map", "[v]", "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-r", str(fps), v2])
+        run(["ffmpeg", "-y", "-loglevel", "error", "-i", video, "-i", ms_mov, "-filter_complex", "[1:v]format=yuva420p,scale=out_color_matrix=bt709:out_range=tv[ms];[0:v][ms]overlay=0:0:format=yuv420,format=yuv420p[v]",
+             "-map", "[v]", "-c:v", "libx264", "-preset", "medium", "-crf", "15", "-pix_fmt", "yuv420p"] + BT709 + ["-r", str(fps), v2])
         video = v2
         print("마일스톤 바 겹침", flush=True)
     with open(os.path.join(P, "final", "master_draft.json" if a.draft else "master.json"), "w", encoding="utf-8") as f:
@@ -265,8 +310,25 @@ def main():
     if bgm:
         track = bgm[0] if os.path.isabs(bgm[0]) else os.path.join(P, bgm[0])
         vol = (cfg.get("bgm") or {}).get("volume", 0.24)
-        fc = ("[2:a]aloop=loop=-1:size=2e9,atrim=0:{D},volume={v}[b];[1:a]asplit=2[n1][n2];"
-              "[b][n1]sidechaincompress=threshold=0.015:ratio=8:attack=30:release=1200[bd];"
+        # 앞부분만 깔기: bgm.until(섹션 id — 그 섹션 시작에서 끝) 또는 bgm.end_sec(초). fade_out초 동안 줄어든 뒤 무음
+        bg = cfg.get("bgm") or {}
+        E = None
+        if bg.get("until"):
+            st = {s["id"]: s["start"] for s in (rj(os.path.join(P, "final", "master.json"), {}) or {}).get("sections", [])}
+            if bg["until"] in st:
+                E = st[bg["until"]] / float(fps)
+        elif bg.get("end_sec"):
+            E = float(bg["end_sec"])
+        if E is not None and E < float(D):
+            F = float(bg.get("fade_out", 4))
+            cut = "atrim=0:{E:.3f},afade=t=out:st={S:.3f}:d={F:.3f},apad=whole_dur={D}".format(E=E, S=max(0.0, E - F), F=F, D=D)
+            print("BGM: 0 ~ %.1f초 (끝 %.0f초 페이드아웃)" % (E, F))
+        else:
+            cut = "atrim=0:{D}".format(D=D)
+        # 덕킹 세기: bgm.duck_ratio (기본 8 = 목소리 나오면 음악 거의 사라짐, 3 = 살짝 낮아져 계속 들림)
+        dr = float(bg.get("duck_ratio", 8))
+        fc = ("[2:a]aloop=loop=-1:size=2e9," + cut + ",volume={v}[b];[1:a]asplit=2[n1][n2];"
+              "[b][n1]sidechaincompress=threshold=0.015:ratio=" + ("%g" % dr) + ":attack=30:release=1200[bd];"
               "[n2]volume=6dB[nv];[nv][bd]amix=inputs=2:normalize=0:dropout_transition=0,apad=whole_dur={D},atrim=0:{D},alimiter=limit=0.95:level=false[a]").format(D=D, v=vol)
         run(["ffmpeg", "-y", "-loglevel", "error", "-i", video, "-i", narr, "-i", track, "-filter_complex", fc,
              "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", out])
